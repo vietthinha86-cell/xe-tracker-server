@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quản Trị Hệ Thống - Car Tracker</title>
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0E1318;
+            color: #EAEAEA;
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+        #header {
+            background: #171E26;
+            border-bottom: 1px solid #273340;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .brand { font-size: 17px; font-weight: 800; color: #0088FF; display: flex; align-items: center; gap: 8px; }
+        .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .container { max-width: 1120px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        @media (max-width: 768px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+        .kpi-card {
+            background: #171E26;
+            border: 1px solid #273340;
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .kpi-label { font-size: 11px; color: #8F9CA8; font-weight: 700; text-transform: uppercase; }
+        .kpi-num { font-size: 24px; font-weight: 800; margin-top: 4px; color: #fff; }
+        .card {
+            background: #171E26;
+            border: 1px solid #273340;
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .card-title { font-size: 15px; font-weight: 700; color: #66B8FF; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; align-items: end; }
+        label { display: block; font-size: 11px; color: #9EB0C2; font-weight: 700; margin-bottom: 5px; }
+        input, select {
+            width: 100%;
+            background: #10161D;
+            color: #fff;
+            border: 1px solid #324151;
+            padding: 9px 11px;
+            border-radius: 9px;
+            font-size: 13px;
+            outline: none;
+        }
+        input:focus, select:focus { border-color: #0088FF; }
+        button, .btn-link {
+            background: #0088FF;
+            color: #fff;
+            border: none;
+            padding: 9px 14px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        button:active { transform: scale(0.97); }
+        .btn-green { background: #00E676; color: #000; }
+        .btn-red { background: #E53935; color: #fff; }
+        .btn-gray { background: #23303E; border: 1px solid #38495C; color: #DCE7F2; }
+        .btn-sm { padding: 5px 9px; font-size: 11.5px; border-radius: 7px; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 680px; }
+        th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #24303D; vertical-align: middle; }
+        th { font-size: 11px; color: #8F9CA8; text-transform: uppercase; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+        .badge-ok { background: rgba(0, 230, 118, 0.16); color: #00E676; border: 1px solid rgba(0, 230, 118, 0.4); }
+        .badge-warn { background: rgba(255, 167, 38, 0.18); color: #FFA726; border: 1px solid rgba(255, 167, 38, 0.4); }
+        .badge-bad { background: rgba(255, 82, 82, 0.18); color: #FF5252; border: 1px solid rgba(255, 82, 82, 0.4); }
+        .code-pill {
+            font-family: monospace;
+            font-weight: 800;
+            background: #10161D;
+            border: 1px dashed #0088FF;
+            color: #66B8FF;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+        #loginBox {
+            max-width: 400px;
+            margin: 60px auto;
+            background: #171E26;
+            border: 1px solid #273340;
+            border-radius: 16px;
+            padding: 24px;
+            display: none;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .hint { font-size: 12px; color: #8F9CA8; line-height: 1.5; }
+    </style>
+</head>
+
+<body>
+    <div id="header">
+        <div class="brand">🛠️ QUẢN TRỊ BÁN HÀNG &amp; GÓI CƯỚC</div>
+        <div class="header-actions">
+            <a href="/" class="btn-link btn-gray">🗺️ Bản Đồ Xe</a>
+            <a href="/tai" class="btn-link btn-gray">📲 Trang Tải App</a>
+            <button id="btnLogout" class="btn-red" onclick="logout()" style="display:none;">🚪 Đăng xuất</button>
+        </div>
+    </div>
+
+    <div id="loginBox">
+        <h2 style="font-size: 18px; color: #0088FF;">Đăng nhập Quản trị viên</h2>
+        <p class="hint">Vui lòng đăng nhập bằng tài khoản quyền ADMIN để quản lý khách hàng, mã kích hoạt và gia hạn gói xe.</p>
+        <div>
+            <label>Tên đăng nhập Admin</label>
+            <input type="text" id="admUser" placeholder="Nhập tài khoản admin">
+        </div>
+        <div>
+            <label>Mật khẩu</label>
+            <input type="password" id="admPass" placeholder="Nhập mật khẩu" onkeydown="if(event.key==='Enter') adminLogin()">
+        </div>
+        <div id="admErr" style="color: #FF5252; font-size: 12.5px; display: none;"></div>
+        <button class="btn-green" onclick="adminLogin()">Đăng Nhập Quản Trị</button>
+    </div>
+
+    <div id="mainContent" class="container" style="display:none;">
+        <!-- KPIs -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">Khách hàng</div>
+                <div id="kpiUsers" class="kpi-num">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Tổng số xe</div>
+                <div id="kpiVehicles" class="kpi-num" style="color: #0088FF;">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Xe hết hạn</div>
+                <div id="kpiExpired" class="kpi-num" style="color: #FFA726;">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Đang báo động</div>
+                <div id="kpiBreached" class="kpi-num" style="color: #FF5252;">0</div>
+            </div>
+        </div>
+
+        <!-- TELEGRAM BOT HỆ THỐNG -->
+        <div class="card">
+            <div class="card-title">
+                <span>📣 Cấu hình Telegram Bot Báo Động (Dùng chung toàn hệ thống - 0đ)</span>
+                <span id="tgStatusBadge" class="badge badge-warn">Chưa cấu hình</span>
+            </div>
+            <p class="hint">
+                Mở Telegram tìm <b>@BotFather</b> → gõ <code>/newbot</code> để tạo 1 Bot miễn phí, rồi dán <b>Bot Token</b> vào đây.
+                Mỗi khách hàng chỉ cần nhập Chat ID của họ trong mục Cài đặt trên bản đồ để nhận cảnh báo chống trộm dù khóa màn hình iPhone!
+            </p>
+            <div class="form-grid">
+                <div style="grid-column: span 2;">
+                    <label>Telegram Bot Token (Từ @BotFather)</label>
+                    <input type="password" id="tgBotToken" placeholder="VD: 1234567890:AAF...">
+                </div>
+                <button onclick="saveTelegramToken()">💾 Lưu Bot Token</button>
+            </div>
+        </div>
+
+        <!-- QUẢN LÝ XE & LICENSE -->
+        <div class="card">
+            <div class="card-title">
+                <span>🚗 Tạo Xe Mới &amp; Cấp Mã Kích Hoạt / Hạn Sử Dụng</span>
+            </div>
+            <div class="form-grid">
+                <div>
+                    <label>Biển số / Mã xe *</label>
+                    <input type="text" id="newVehId" placeholder="VD: 51K88888" style="text-transform: uppercase;">
+                </div>
+                <div>
+                    <label>Tên xe gợi nhớ</label>
+                    <input type="text" id="newVehName" placeholder="VD: Toyota Vios Trắng">
+                </div>
+                <div>
+                    <label>Gán cho khách hàng</label>
+                    <select id="newVehOwner"></select>
+                </div>
+                <div>
+                    <label>Thời hạn gói</label>
+                    <select id="newVehPlanMonths">
+                        <option value="1">1 Tháng (Dùng thử / Tháng)</option>
+                        <option value="6">6 Tháng</option>
+                        <option value="12" selected>12 Tháng (1 Năm)</option>
+                        <option value="0">Không giới hạn (Vĩnh viễn)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Bảo mật thiết bị</label>
+                    <select id="newVehRequireCode">
+                        <option value="true" selected>Bắt buộc Mã kích hoạt</option>
+                        <option value="false">Không bắt buộc mã</option>
+                    </select>
+                </div>
+                <button class="btn-green" onclick="createVehicle()">➕ Tạo Xe &amp; Sinh Mã</button>
+            </div>
+
+            <div class="table-wrap" style="margin-top: 6px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Biển số / Tên</th>
+                            <th>Chủ sở hữu</th>
+                            <th>Mã kích hoạt</th>
+                            <th>Hạn sử dụng</th>
+                            <th>Cập nhật cuối</th>
+                            <th>Thao tác nhanh</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vehicleTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- QUẢN LÝ KHÁCH HÀNG -->
+        <div class="card">
+            <div class="card-title">
+                <span>👥 Tạo &amp; Quản Lý Tài Khoản Khách Hàng</span>
+            </div>
+            <div class="form-grid">
+                <div>
+                    <label>Tên đăng nhập / SĐT *</label>
+                    <input type="text" id="newUsrName" placeholder="VD: 0909123456">
+                </div>
+                <div>
+                    <label>Mật khẩu *</label>
+                    <input type="password" id="newUsrPass" placeholder="Ít nhất 6 ký tự">
+                </div>
+                <div>
+                    <label>Họ tên khách</label>
+                    <input type="text" id="newUsrFullName" placeholder="VD: Nguyễn Văn A">
+                </div>
+                <div>
+                    <label>Số điện thoại</label>
+                    <input type="text" id="newUsrPhone" placeholder="0909...">
+                </div>
+                <div>
+                    <label>Vai trò</label>
+                    <select id="newUsrRole">
+                        <option value="USER" selected>Khách hàng (USER)</option>
+                        <option value="ADMIN">Quản trị (ADMIN)</option>
+                    </select>
+                </div>
+                <button onclick="createUser()">➕ Tạo Tài Khoản</button>
+            </div>
+
+            <div class="table-wrap" style="margin-top: 6px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tài khoản</th>
+                            <th>Họ tên / SĐT</th>
+                            <th>Vai trò</th>
+                            <th>Telegram</th>
+                            <th>Trạng thái</th>
+                            <th>Quản lý</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let token = localStorage.getItem('car_tracker_token') || '';
+        let overviewData = null;
+
+        async function apiFetch(url, options = {}) {
+            const headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            const res = await fetch(url, Object.assign({}, options, { headers }));
+            const text = await res.text();
+            let json = null;
+            try { json = text ? JSON.parse(text) : {}; } catch (_) { json = {}; }
+            return { ok: res.ok, status: res.status, data: json };
+        }
+
+        async function loadOverview() {
+            if (!token) {
+                showLogin("Vui lòng đăng nhập bằng tài khoản ADMIN.");
+                return;
+            }
+            const res = await apiFetch('/api/admin/overview');
+            if (!res.ok) {
+                showLogin(res.data.message || "Tài khoản hiện tại không có quyền ADMIN.");
+                return;
+            }
+            overviewData = res.data;
+            document.getElementById('loginBox').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'flex';
+            document.getElementById('btnLogout').style.display = 'inline-flex';
+            renderDashboard(overviewData);
+        }
+
+        function showLogin(msg) {
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('btnLogout').style.display = 'none';
+            document.getElementById('loginBox').style.display = 'flex';
+            if (msg) {
+                const err = document.getElementById('admErr');
+                err.innerText = msg;
+                err.style.display = 'block';
+            }
+        }
+
+        async function adminLogin() {
+            const username = document.getElementById('admUser').value.trim();
+            const password = document.getElementById('admPass').value;
+            const res = await apiFetch('/api/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password })
+            });
+            if (!res.ok) {
+                showLogin(res.data.message || "Đăng nhập thất bại!");
+                return;
+            }
+            if (res.data.user.role !== 'ADMIN') {
+                showLogin("Tài khoản này là USER thường, không phải ADMIN!");
+                return;
+            }
+            token = res.data.token;
+            localStorage.setItem('car_tracker_token', token);
+            localStorage.setItem('car_tracker_user', JSON.stringify(res.data.user));
+            loadOverview();
+        }
+
+        function logout() {
+            localStorage.removeItem('car_tracker_token');
+            localStorage.removeItem('car_tracker_user');
+            token = '';
+            showLogin("");
+        }
+
+        function renderDashboard(data) {
+            document.getElementById('kpiUsers').innerText = data.stats.totalUsers;
+            document.getElementById('kpiVehicles').innerText = data.stats.totalVehicles;
+            document.getElementById('kpiExpired').innerText = data.stats.expiredVehicles;
+            document.getElementById('kpiBreached').innerText = data.stats.breachedVehicles;
+
+            const tgBadge = document.getElementById('tgStatusBadge');
+            if (data.telegramConfigured) {
+                tgBadge.className = 'badge badge-ok';
+                tgBadge.innerText = `✅ Đã cấu hình (${data.telegramMaskedToken})`;
+            } else {
+                tgBadge.className = 'badge badge-warn';
+                tgBadge.innerText = '⚠️ Chưa cấu hình';
+            }
+
+            // Dropdown chọn chủ xe
+            const ownerSel = document.getElementById('newVehOwner');
+            ownerSel.innerHTML = data.users.map(u =>
+                `<option value="${u.id}">${escapeHtml(u.fullName)} (${escapeHtml(u.username)})</option>`
+            ).join('');
+
+            // Bảng xe
+            const vBody = document.getElementById('vehicleTableBody');
+            vBody.innerHTML = data.vehicles.map(v => {
+                const expBadge = !v.planExpiresAt
+                    ? '<span class="badge badge-ok">Vĩnh viễn</span>'
+                    : (v.expired
+                        ? `<span class="badge badge-bad">Hết hạn (${v.planExpiresAt})</span>`
+                        : `<span class="badge badge-ok">${v.planExpiresAt}</span>`);
+                const reqBadge = v.requireActivationCode
+                    ? '<span style="font-size:11px;color:#00E676;">🔒 Bắt buộc</span>'
+                    : '<span style="font-size:11px;color:#8F9CA8;">🔓 Mở</span>';
+
+                return `
+                    <tr>
+                        <td>
+                            <div style="font-weight:800; color:#fff;">${escapeHtml(v.vehicleId)}</div>
+                            <div style="font-size:11.5px; color:#8F9CA8;">${escapeHtml(v.vehicleName)}</div>
+                        </td>
+                        <td>${escapeHtml(v.ownerLabel)}</td>
+                        <td>
+                            <span class="code-pill">${escapeHtml(v.activationCode || '--')}</span><br>
+                            <div style="margin-top:4px;">${reqBadge}</div>
+                        </td>
+                        <td>${expBadge}</td>
+                        <td style="font-size:11.5px; color:#A0B0C0;">${escapeHtml(v.lastUpdated)}</td>
+                        <td>
+                            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                                <button class="btn-sm btn-green" onclick="copyHandover('${escapeAttr(v.vehicleId)}', '${escapeAttr(v.activationCode)}', '${escapeAttr(v.ownerLabel)}')">📋 Copy gửi khách</button>
+                                <button class="btn-sm" onclick="extendVehicle(${v.id}, 1)">+1 Tháng</button>
+                                <button class="btn-sm" onclick="extendVehicle(${v.id}, 12)">+1 Năm</button>
+                                <button class="btn-sm btn-gray" onclick="toggleRequireCode(${v.id}, ${!v.requireActivationCode})">${v.requireActivationCode ? 'Tắt kiểm mã' : 'Bật kiểm mã'}</button>
+                                <button class="btn-sm btn-gray" onclick="regenCode(${v.id})">Đổi mã</button>
+                                <button class="btn-sm btn-red" onclick="deleteVehicle(${v.id}, '${escapeAttr(v.vehicleId)}')">Xóa</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Bảng user
+            const uBody = document.getElementById('userTableBody');
+            uBody.innerHTML = data.users.map(u => `
+                <tr>
+                    <td><b>${escapeHtml(u.username)}</b></td>
+                    <td>
+                        <div>${escapeHtml(u.fullName)}</div>
+                        <div style="font-size:11.5px; color:#8F9CA8;">${escapeHtml(u.phone || 'Chưa có SĐT')}</div>
+                    </td>
+                    <td><span class="badge ${u.role === 'ADMIN' ? 'badge-warn' : 'badge-ok'}">${u.role}</span></td>
+                    <td>${u.telegramChatId ? `<span class="badge badge-ok">✅ ${escapeHtml(u.telegramChatId)}</span>` : '<span style="color:#8F9CA8;font-size:12px;">Chưa nối</span>'}</td>
+                    <td>${u.active ? '<span class="badge badge-ok">Hoạt động</span>' : '<span class="badge badge-bad">Đang khóa</span>'}</td>
+                    <td>
+                        <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                            <button class="btn-sm ${u.active ? 'btn-red' : 'btn-green'}" onclick="toggleUser(${u.id}, ${!u.active})">${u.active ? 'Khóa' : 'Mở khóa'}</button>
+                            <button class="btn-sm btn-gray" onclick="resetPass(${u.id}, '${escapeAttr(u.username)}')">Đổi MK</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function saveTelegramToken() {
+            const botToken = document.getElementById('tgBotToken').value.trim();
+            const res = await apiFetch('/api/admin/settings/telegram', {
+                method: 'POST',
+                body: JSON.stringify({ botToken })
+            });
+            alert(res.data.message || 'Đã cập nhật');
+            document.getElementById('tgBotToken').value = '';
+            loadOverview();
+        }
+
+        async function createVehicle() {
+            const vehicleId = document.getElementById('newVehId').value.trim().toUpperCase();
+            const vehicleName = document.getElementById('newVehName').value.trim();
+            const ownerId = parseInt(document.getElementById('newVehOwner').value, 10);
+            const planMonths = parseInt(document.getElementById('newVehPlanMonths').value, 10);
+            const requireActivationCode = document.getElementById('newVehRequireCode').value === 'true';
+
+            const res = await apiFetch('/api/admin/vehicles', {
+                method: 'POST',
+                body: JSON.stringify({ vehicleId, vehicleName, ownerId, planMonths, requireActivationCode })
+            });
+            if (!res.ok) return alert(res.data.message || 'Lỗi tạo xe!');
+            alert(`✅ Đã tạo xe ${res.data.vehicle.vehicleId}\nMã kích hoạt: ${res.data.vehicle.activationCode}`);
+            document.getElementById('newVehId').value = '';
+            document.getElementById('newVehName').value = '';
+            loadOverview();
+        }
+
+        async function extendVehicle(id, months) {
+            const res = await apiFetch(`/api/admin/vehicles/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ planMonths: months })
+            });
+            if (!res.ok) return alert(res.data.message || 'Lỗi gia hạn');
+            loadOverview();
+        }
+
+        async function toggleRequireCode(id, reqVal) {
+            await apiFetch(`/api/admin/vehicles/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ requireActivationCode: reqVal })
+            });
+            loadOverview();
+        }
+
+        async function regenCode(id) {
+            if (!confirm('Sinh mã kích hoạt mới? Thiết bị trên xe sẽ cần nhập mã mới!')) return;
+            await apiFetch(`/api/admin/vehicles/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ regenerateCode: true })
+            });
+            loadOverview();
+        }
+
+        async function deleteVehicle(id, vId) {
+            if (!confirm(`Xóa vĩnh viễn xe ${vId} và toàn bộ lịch sử đường đi?`)) return;
+            await apiFetch(`/api/admin/vehicles/${id}`, { method: 'DELETE' });
+            loadOverview();
+        }
+
+        async function createUser() {
+            const username = document.getElementById('newUsrName').value.trim();
+            const password = document.getElementById('newUsrPass').value;
+            const fullName = document.getElementById('newUsrFullName').value.trim();
+            const phone = document.getElementById('newUsrPhone').value.trim();
+            const role = document.getElementById('newUsrRole').value;
+            const res = await apiFetch('/api/admin/users', {
+                method: 'POST',
+                body: JSON.stringify({ username, password, fullName, phone, role })
+            });
+            if (!res.ok) return alert(res.data.message || 'Lỗi tạo tài khoản!');
+            document.getElementById('newUsrName').value = '';
+            document.getElementById('newUsrPass').value = '';
+            document.getElementById('newUsrFullName').value = '';
+            document.getElementById('newUsrPhone').value = '';
+            loadOverview();
+        }
+
+        async function toggleUser(id, active) {
+            const res = await apiFetch(`/api/admin/users/${id}/status`, {
+                method: 'PATCH',
+                body: JSON.stringify({ active })
+            });
+            if (!res.ok) alert(res.data.message || 'Lỗi');
+            loadOverview();
+        }
+
+        async function resetPass(id, username) {
+            const newPassword = prompt(`Nhập mật khẩu mới cho tài khoản "${username}" (từ 6 ký tự):`);
+            if (!newPassword) return;
+            const res = await apiFetch(`/api/admin/users/${id}/reset-password`, {
+                method: 'POST',
+                body: JSON.stringify({ newPassword })
+            });
+            alert(res.data.message || 'Xong');
+        }
+
+        function copyHandover(vId, code, ownerLabel) {
+            const origin = window.location.origin;
+            const text = `🚗 THÔNG TIN KÍCH HOẠT ĐỊNH VỊ XE\n`
+                + `- Link xem trên iPhone / Web: ${origin}\n`
+                + `- Link tải App màn hình Ô tô Android: ${origin}/tai\n`
+                + `- Chủ xe: ${ownerLabel}\n`
+                + `- Biển số / Mã xe: ${vId}\n`
+                + `- Mã kích hoạt thiết bị: ${code}\n`
+                + `(Nhập Mã xe & Mã kích hoạt vào app trên màn hình ô tô và tài khoản của bạn để ghép xe)`;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => alert('✅ Đã copy hướng dẫn bàn giao gửi khách!'));
+            } else {
+                prompt('Copy nội dung bên dưới gửi cho khách:', text);
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+        }
+        function escapeAttr(str) {
+            return String(str || '').replace(/'/g, "\\'");
+        }
+
+        loadOverview();
+    </script>
+</body>
+
+</html>
+

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tải App Định Vị Màn Hình Ô Tô</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0E1318;
+            color: #EAEAEA;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 560px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            color: #0088FF;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #9EB0C2;
+        }
+
+        .card {
+            background: #171E26;
+            border: 1px solid #273340;
+            border-radius: 16px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn-download {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 18px;
+            background: #00E676;
+            color: #000;
+            font-size: 17px;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 14px;
+            text-align: center;
+            box-shadow: 0 6px 20px rgba(0, 230, 118, 0.25);
+        }
+
+        .url-box {
+            background: #10161D;
+            border: 1px dashed #0088FF;
+            padding: 12px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #66B8FF;
+            word-break: break-all;
+            text-align: center;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #0088FF;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background: #222C37;
+            border: 1px solid #364453;
+            color: #D0DCE6;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+            padding: 13px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .step {
+            font-size: 13.5px;
+            color: #C2D0DE;
+            line-height: 1.55;
+        }
+
+        .step b {
+            color: #FFFFFF;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 CÀI APP CHO MÀN HÌNH Ô TÔ</h1>
+            <p>Tải trực tiếp qua mạng 4G/Wi-Fi, không cần cắm USB</p>
+        </div>
+
+        <div class="card">
+            <a class="btn-download" href="/download/car.apk">
+                ⬇️ TẢI FILE CÀI MÀN HÌNH Ô TÔ (.APK)
+            </a>
+            <div class="step">
+                <b>Hướng dẫn nhanh trên xe:</b><br>
+                1️⃣ Bấm nút xanh ở trên để tải file <b>CarTrackerAuto.apk</b> và cài đặt lên màn hình Android ô tô.<br>
+                2️⃣ Dán <b>Địa chỉ Server</b> bên dưới cùng <b>Mã xe + Mã kích hoạt</b> (người bán cung cấp) vào app trên xe rồi bấm <b>BẮT ĐẦU PHÁT</b>.<br>
+                3️⃣ Trên điện thoại chủ xe, mở bản đồ đăng ký/đăng nhập tài khoản và chọn <b>➕ Kích hoạt thêm xe</b> bằng đúng Mã kích hoạt đó.<br>
+                4️⃣ Cài thêm nhận cảnh báo <b>Telegram 24/7</b> trong nút <b>⚙️</b> để báo ngay khi xe rời bãi hoặc quá tốc độ kể cả lúc khóa máy!
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="font-size: 12px; font-weight: bold; color: #8F9CA8; text-transform: uppercase;">
+                Địa chỉ Server dùng để dán vào App trên xe:
+            </div>
+            <div id="serverUrlText" class="url-box">--</div>
+            <button id="btnCopy" onclick="copyServerUrl()">📋 Bấm để Copy Địa Chỉ Server</button>
+        </div>
+
+        <a class="btn-secondary" href="/download/mobile.apk">
+            📱 Tải app dành cho Điện Thoại Android (.APK)
+        </a>
+
+        <a class="btn-secondary" href="/">
+            🗺️ Quay lại Bản Đồ Theo Dõi Xe
+        </a>
+    </div>
+
+    <script>
+        const currentOrigin = window.location.origin;
+        document.getElementById('serverUrlText').innerText = currentOrigin;
+
+        function copyServerUrl() {
+            const btn = document.getElementById('btnCopy');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(currentOrigin).then(() => {
+                    btn.innerText = '✅ ĐÃ COPY ĐỊA CHỈ SERVER!';
+                    btn.style.background = '#00E676';
+                    btn.style.color = '#000';
+                });
+            } else {
+                const range = document.createRange();
+                range.selectNode(document.getElementById('serverUrlText'));
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+                document.execCommand('copy');
+                btn.innerText = '✅ ĐÃ COPY ĐỊA CHỈ SERVER!';
+                btn.style.background = '#00E676';
+                btn.style.color = '#000';
+            }
+        }
+    </script>
+</body>
+
+</html>
+

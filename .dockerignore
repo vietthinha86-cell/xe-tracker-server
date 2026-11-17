@@ -1,0 +1,8 @@
+.git
+.idea
+.vscode
+target
+server.jar
+start_server.bat
+*.log
+.env

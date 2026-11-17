@@ -1,0 +1,19 @@
+{
+  "name": "Định Vị & Theo Dõi Ô Tô",
+  "short_name": "Định Vị Xe",
+  "description": "Giám sát vị trí ô tô thời gian thực & chống trộm GPS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0E1318",
+  "theme_color": "#171E26",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Thiết Bị Phát GPS Thật (Xe)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0E1318;
+            color: #EAEAEA;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 6px 0;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            color: #0088FF;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 13px;
+            color: #8F9CA8;
+        }
+
+        .card {
+            background: #171E26;
+            border: 1px solid #273340;
+            border-radius: 14px;
+            padding: 15px;
+        }
+
+        label {
+            font-size: 11px;
+            color: #8F9CA8;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        input {
+            width: 100%;
+            background: #222C37;
+            color: #fff;
+            border: 1px solid #364453;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-start {
+            background: #00E676;
+            color: #000;
+        }
+
+        .btn-stop {
+            background: #FF4444;
+            color: #fff;
+        }
+
+        .btn-back {
+            background: #1C2631;
+            border: 1px solid #364453;
+            color: #D0DCE6;
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .stat-box {
+            background: #121820;
+            padding: 11px;
+            border-radius: 10px;
+            border: 1px solid #24303D;
+        }
+
+        .stat-label {
+            font-size: 10.5px;
+            color: #8F9CA8;
+        }
+
+        .stat-val {
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            margin-top: 4px;
+        }
+
+        .log-box {
+            font-size: 12px;
+            color: #00E676;
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 230, 118, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 230, 118, 0.3);
+        }
+
+        .error-box {
+            font-size: 12px;
+            color: #FF5252;
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 82, 82, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 82, 82, 0.3);
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📡 MÁY PHÁT GPS THẬT</h1>
+            <p>Dùng thiết bị này làm màn hình phát vị trí trên xe</p>
+        </div>
+
+        <div class="card">
+            <label>MÃ ĐỊNH DANH XE</label>
+            <input type="text" id="vehicleId" value="XE001">
+            <label style="margin-top: 10px; display: block;">MÃ KÍCH HOẠT THIẾT BỊ (TÙY CHỌN)</label>
+            <input type="text" id="activationCode" placeholder="VD: CT-XE001">
+        </div>
+
+        <button id="btnToggle" class="btn-start" onclick="toggleTracking()">
+            🚀 BẮT ĐẦU PHÁT VỊ TRÍ THẬT
+        </button>
+
+        <div id="statusLog" class="log-box">Sẵn sàng. Bấm nút xanh để bắt đầu phát GPS.</div>
+        <div id="errorLog" class="error-box"></div>
+
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="stat-label" style="font-weight: bold;">THÔNG SỐ VỆ TINH THỰC TẾ</span>
+                <span id="sentCount" style="font-size: 11px; color: #0088FF; font-weight: bold;">Đã gửi: 0 lần</span>
+            </div>
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <div class="stat-label">VĨ ĐỘ (LAT)</div>
+                    <div id="valLat" class="stat-val">--</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">KINH ĐỘ (LNG)</div>
+                    <div id="valLng" class="stat-val">--</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">TỐC ĐỘ</div>
+                    <div id="valSpeed" class="stat-val" style="color: #0088FF;">0.0 km/h</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">SAI SỐ GPS</div>
+                    <div id="valAcc" class="stat-val" style="color: #00E676;">-- m</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-back" onclick="window.location.href='/'">
+            🗺️ Mở Bản Đồ Theo Dõi Xe
+        </button>
+    </div>
+
+    <script>
+        let watchId = null;
+        let heartbeatTimer = null;
+        let wakeLock = null;
+        let isRunning = false;
+        let sentPackets = 0;
+        let lastCoords = null;
+        let lastSentAtMs = 0;
+
+        (function initTransmitterPrefs() {
+            const savedVid = localStorage.getItem('xe_transmitter_vehicle_id');
+            const savedCode = localStorage.getItem('xe_transmitter_activation_code');
+            if (savedVid) document.getElementById('vehicleId').value = savedVid;
+            if (savedCode) document.getElementById('activationCode').value = savedCode;
+        })();
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (_) {}
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock) {
+                wakeLock.release().catch(() => {});
+                wakeLock = null;
+            }
+        }
+
+        function toggleTracking() {
+            if (isRunning) stopTracking();
+            else startTracking();
+        }
+
+        function startTracking() {
+            if (!navigator.geolocation) {
+                showError("Trình duyệt không hỗ trợ định vị GPS!");
+                return;
+            }
+
+            isRunning = true;
+            sentPackets = 0;
+            lastSentAtMs = 0;
+            requestWakeLock();
+
+            const btn = document.getElementById('btnToggle');
+            btn.innerText = "🛑 DỪNG PHÁT GPS";
+            btn.className = "btn-stop";
+            document.getElementById('errorLog').style.display = "none";
+            document.getElementById('statusLog').innerText = "Đang lấy tín hiệu GPS vệ tinh...";
+
+            watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const acc = Math.round(position.coords.accuracy || 0);
+                    const speedKmh = position.coords.speed ? (position.coords.speed * 3.6) : 0.0;
+                    const heading = (position.coords.heading != null && !isNaN(position.coords.heading))
+                        ? position.coords.heading
+                        : null;
+
+                    lastCoords = { lat, lng, speedKmh, heading };
+
+                    document.getElementById('valLat').innerText = lat.toFixed(6);
+                    document.getElementById('valLng').innerText = lng.toFixed(6);
+                    document.getElementById('valSpeed').innerText = speedKmh.toFixed(1) + " km/h";
+                    document.getElementById('valAcc').innerText = acc + " m";
+
+                    const nowMs = Date.now();
+                    if (nowMs - lastSentAtMs >= 2500) {
+                        sendLocation(lat, lng, speedKmh, heading);
+                    }
+                },
+                (err) => {
+                    showError("Lỗi GPS: " + err.message + " (Hãy cấp quyền Vị trí cho trình duyệt)");
+                },
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 10000
+                }
+            );
+
+            // Giữ kết nối ONLINE mỗi 6 giây kể cả khi xe dừng hẳn
+            heartbeatTimer = setInterval(() => {
+                if (isRunning && lastCoords && (Date.now() - lastSentAtMs >= 5500)) {
+                    sendLocation(lastCoords.lat, lastCoords.lng, 0.0, lastCoords.heading);
+                }
+            }, 6000);
+        }
+
+        function stopTracking() {
+            isRunning = false;
+            releaseWakeLock();
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            if (heartbeatTimer !== null) {
+                clearInterval(heartbeatTimer);
+                heartbeatTimer = null;
+            }
+            const btn = document.getElementById('btnToggle');
+            btn.innerText = "🚀 BẮT ĐẦU PHÁT VỊ TRÍ THẬT";
+            btn.className = "btn-start";
+            document.getElementById('statusLog').innerText = "Đã tạm dừng phát vị trí.";
+        }
+
+        function sendLocation(lat, lng, speed, bearing = null) {
+            lastSentAtMs = Date.now();
+            const vId = (document.getElementById('vehicleId').value.trim() || 'XE001').toUpperCase();
+            const activationCode = document.getElementById('activationCode').value.trim().toUpperCase();
+            localStorage.setItem('xe_transmitter_vehicle_id', vId);
+            localStorage.setItem('xe_transmitter_activation_code', activationCode);
+
+            const headers = { 'Content-Type': 'application/json' };
+            const tok = localStorage.getItem('car_tracker_token');
+            if (tok) headers['Authorization'] = `Bearer ${tok}`;
+
+            const payload = {
+                vehicleId: vId,
+                latitude: lat,
+                longitude: lng,
+                speed: speed
+            };
+            if (activationCode) payload.activationCode = activationCode;
+            if (bearing !== null && !isNaN(bearing)) payload.bearing = bearing;
+
+            fetch('/update-location', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(payload)
+            })
+            .then(async res => {
+                if (res.ok) {
+                    sentPackets++;
+                    const now = new Date().toLocaleTimeString('vi-VN');
+                    document.getElementById('sentCount').innerText = `Đã gửi: ${sentPackets} lần`;
+                    document.getElementById('statusLog').innerText = "✅ Đã đồng bộ tọa độ lúc " + now;
+                    document.getElementById('errorLog').style.display = "none";
+                } else {
+                    let msg = "Server phản hồi lỗi (" + res.status + ")";
+                    try {
+                        const errJson = await res.json();
+                        if (errJson && errJson.message) msg = errJson.message;
+                    } catch (_) {}
+                    showError(msg);
+                }
+            })
+            .catch(() => {
+                showError("Lỗi kết nối mạng tới máy chủ!");
+            });
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorLog');
+            el.innerText = msg;
+            el.style.display = "block";
+        }
+    </script>
+</body>
+
+</html>

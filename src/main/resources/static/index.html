@@ -1,0 +1,2215 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Định Vị Ô Tô - Car Tracker</title>
+
+    <!-- PWA & iPhone App Mode -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Định Vị Xe">
+    <meta name="theme-color" content="#171E26">
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+    <link rel="apple-touch-icon" href="/icon.svg">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #0E1318;
+            color: #EAEAEA;
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* HEADER */
+        #header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            padding-top: max(10px, env(safe-area-inset-top));
+            background: #171E26;
+            border-bottom: 1px solid #273340;
+            min-height: 54px;
+            flex-shrink: 0;
+            z-index: 1000;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0088FF;
+            letter-spacing: 0.3px;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        input, select, button {
+            background: #222C37;
+            color: #fff;
+            border: 1px solid #364453;
+            padding: 7px 11px;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        input#vehicleInput {
+            width: 78px;
+            text-transform: uppercase;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        button {
+            background: #0088FF;
+            cursor: pointer;
+            border: none;
+            font-weight: 600;
+            transition: opacity 0.15s, transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.96);
+            opacity: 0.9;
+        }
+
+        button.btn-danger {
+            background: #E53935;
+            color: #fff;
+        }
+
+        button.btn-success {
+            background: #00E676;
+            color: #000;
+        }
+
+        button.btn-secondary {
+            background: #23303E;
+            border: 1px solid #38495C;
+            color: #E0E8F0;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .status-online {
+            background: rgba(0, 230, 118, 0.15);
+            color: #00E676;
+            border: 1px solid rgba(0, 230, 118, 0.45);
+        }
+
+        .status-offline {
+            background: rgba(255, 152, 0, 0.15);
+            color: #FFA726;
+            border: 1px solid rgba(255, 152, 0, 0.45);
+        }
+
+        .status-error {
+            background: rgba(255, 82, 82, 0.15);
+            color: #FF5252;
+            border: 1px solid rgba(255, 82, 82, 0.45);
+        }
+
+        /* ALARM BANNER */
+        #alarmBanner {
+            display: none;
+            background: #D50000;
+            color: #fff;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+            z-index: 1200;
+            animation: pulseBg 0.9s infinite alternate;
+            border-bottom: 2px solid #FF8A80;
+        }
+
+        .alarm-actions {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 7px;
+            flex-wrap: wrap;
+        }
+
+        .alarm-chip-btn {
+            background: rgba(0, 0, 0, 0.35);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            padding: 5px 11px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .alarm-chip-unlock {
+            background: #FFFFFF;
+            color: #B71C1C;
+            border: none;
+        }
+
+        @keyframes pulseBg {
+            from { background: #B71C1C; }
+            to { background: #FF1744; }
+        }
+
+        /* CONTAINER & LAYOUT */
+        #container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #sidebar {
+            width: 380px;
+            background: #131A22;
+            border-right: 1px solid #24303D;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            flex-shrink: 0;
+            z-index: 500;
+        }
+
+        #mapWrapper {
+            flex: 1;
+            position: relative;
+            height: 100%;
+            width: 100%;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            background: #1c2631;
+        }
+
+        /* FLOATING MAP CONTROLS */
+        .map-float-tools {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 900;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .float-btn {
+            background: rgba(23, 30, 38, 0.92);
+            color: #EAEAEA;
+            border: 1px solid #364453;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .float-btn.active {
+            background: #0088FF;
+            border-color: #33A1FF;
+            color: #fff;
+        }
+
+        /* CARDS */
+        .card {
+            background: #1C2631;
+            border: 1px solid #293847;
+            padding: 12px;
+            border-radius: 12px;
+        }
+
+        .card-label {
+            font-size: 10.5px;
+            color: #8F9CA8;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .card-value {
+            font-size: 19px;
+            font-weight: bold;
+            color: #00E676;
+        }
+
+        .card-sub {
+            font-size: 11.5px;
+            color: #A0B0C0;
+            margin-top: 3px;
+            line-height: 1.35;
+        }
+
+        .address-line {
+            font-size: 12px;
+            color: #DCE7F2;
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid #2A3846;
+            line-height: 1.35;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-box {
+            background: #162029;
+            padding: 9px 11px;
+            border-radius: 8px;
+            border: 1px solid #273442;
+        }
+
+        .stat-box-num {
+            font-size: 15px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .action-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        /* GEOFENCE LOCK CARD */
+        .guard-card {
+            background: #18222C;
+            border: 1px solid #2A3847;
+            padding: 11px 12px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .guard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .siren-pill {
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            border: 1px solid #38495C;
+            background: #222D39;
+            color: #D0DBE5;
+        }
+
+        .siren-pill.on {
+            background: rgba(0, 136, 255, 0.18);
+            border-color: #0088FF;
+            color: #66B8FF;
+        }
+
+        .radius-pills {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        .radius-pill {
+            padding: 6px 4px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            background: #121A22;
+            border: 1px solid #2D3B4B;
+            color: #9EB0C2;
+        }
+
+        .radius-pill.active {
+            background: #0088FF;
+            border-color: #33A1FF;
+            color: #FFFFFF;
+        }
+
+        .guard-btn {
+            width: 100%;
+            padding: 11px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+
+        .guard-on {
+            background: rgba(0, 230, 118, 0.18);
+            color: #00E676;
+            border: 1px solid #00E676;
+        }
+
+        .guard-off {
+            background: #1C2631;
+            color: #D0DBE5;
+            border: 1px solid #364453;
+        }
+
+        .guard-alarm {
+            background: rgba(255, 23, 68, 0.25);
+            color: #FF8A80;
+            border: 1px solid #FF1744;
+        }
+
+        .guard-sub {
+            font-size: 11.5px;
+            color: #9AB0C5;
+            display: none;
+            line-height: 1.35;
+        }
+
+        /* PLAYBACK */
+        .playback-box {
+            background: #18222C;
+            border: 1px solid #0088FF;
+            padding: 12px;
+            border-radius: 12px;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        input[type=range] {
+            flex: 1;
+            accent-color: #0088FF;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        /* VEHICLE CHIPS */
+        #vehicleChips {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            padding: 4px 10px;
+            background: #1B2632;
+            border: 1px solid #2F3E4E;
+            border-radius: 14px;
+            font-size: 11px;
+            color: #B6C5D4;
+            cursor: pointer;
+        }
+
+        .chip.active {
+            background: #0088FF;
+            color: #fff;
+            border-color: #0088FF;
+            font-weight: bold;
+        }
+
+        /* RESPONSIVE CHO IPHONE VÀ ĐIỆN THOẠI */
+        @media (max-width: 768px) {
+            #header {
+                min-height: 48px;
+                padding: 6px 12px;
+                padding-top: max(6px, env(safe-area-inset-top));
+            }
+
+            .logo-title {
+                font-size: 14px;
+            }
+
+            .logo-sub {
+                display: none;
+            }
+
+            #container {
+                flex-direction: column;
+            }
+
+            #mapWrapper {
+                height: 48vh;
+                flex: none;
+            }
+
+            #sidebar {
+                width: 100%;
+                flex: 1;
+                border-right: none;
+                border-top: 1px solid #24303D;
+                padding: 10px 12px;
+                padding-bottom: max(14px, env(safe-area-inset-bottom));
+                gap: 8px;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .card {
+                padding: 10px 12px;
+            }
+
+            .card-value {
+                font-size: 17px;
+            }
+
+            .stat-box {
+                padding: 7px 9px;
+            }
+
+            .stat-box-num {
+                font-size: 14px;
+            }
+        }
+
+        /* HEADER EXTRA BUTTONS */
+        .hdr-icon-btn {
+            background: #222D39;
+            border: 1px solid #38495C;
+            color: #DCE7F2;
+            padding: 6px 9px;
+            border-radius: 8px;
+            font-size: 13px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .hdr-admin-btn {
+            background: rgba(0, 136, 255, 0.16);
+            border-color: #0088FF;
+            color: #66B8FF;
+        }
+
+        /* EXPIRY & VEHICLE META */
+        .vehicle-meta-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+
+        .plan-pill {
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: rgba(0, 230, 118, 0.14);
+            color: #00E676;
+            border: 1px solid rgba(0, 230, 118, 0.35);
+        }
+
+        .plan-pill.expired {
+            background: rgba(255, 82, 82, 0.18);
+            color: #FF8A80;
+            border-color: rgba(255, 82, 82, 0.45);
+        }
+
+        .chip-add {
+            border: 1px dashed #0088FF;
+            color: #66B8FF;
+            background: rgba(0, 136, 255, 0.1);
+            font-weight: 700;
+        }
+
+        /* DATE FILTER BAR */
+        .date-filter-row {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .date-pill {
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 7px;
+            background: #121A22;
+            border: 1px solid #2D3B4B;
+            color: #A0B0C0;
+            font-weight: 600;
+        }
+
+        .date-pill.active {
+            background: #0088FF;
+            border-color: #33A1FF;
+            color: #fff;
+        }
+
+        .date-input {
+            flex: 1;
+            min-width: 112px;
+            padding: 4px 7px;
+            font-size: 11px;
+            background: #121A22;
+            border: 1px solid #2D3B4B;
+            border-radius: 7px;
+            color: #DCE7F2;
+        }
+
+        /* CAR BEARING MARKER & VIEWER GPS DOT */
+        .car-dir-marker {
+            background: transparent;
+            border: none;
+        }
+
+        .car-marker-wrap {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .car-heading-ring {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            transition: transform 0.35s ease;
+            pointer-events: none;
+        }
+
+        .car-heading-arrow {
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 10px solid #00E676;
+            filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.85));
+            margin-top: -3px;
+        }
+
+        .user-gps-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #0088FF;
+            border: 3px solid #FFFFFF;
+            box-shadow: 0 0 0 6px rgba(0, 136, 255, 0.3);
+        }
+
+        /* MODALS */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(9, 13, 18, 0.92);
+            backdrop-filter: blur(8px);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .modal-card {
+            width: 100%;
+            max-width: 410px;
+            background: #171E26;
+            border: 1px solid #2B3948;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .modal-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            background: #10161D;
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid #253240;
+        }
+
+        .modal-tab {
+            padding: 8px;
+            border-radius: 7px;
+            background: transparent;
+            color: #8F9CA8;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .modal-tab.active {
+            background: #0088FF;
+            color: #fff;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .form-field label {
+            font-size: 11px;
+            color: #96A6B6;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .form-field input {
+            width: 100%;
+            padding: 10px 12px;
+            background: #10161D;
+            border: 1px solid #2D3B4B;
+            border-radius: 9px;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .msg-box {
+            display: none;
+            padding: 9px 11px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            line-height: 1.4;
+        }
+
+        .msg-err {
+            background: rgba(255, 82, 82, 0.14);
+            border: 1px solid rgba(255, 82, 82, 0.4);
+            color: #FF8A80;
+        }
+
+        .msg-ok {
+            background: rgba(0, 230, 118, 0.14);
+            border: 1px solid rgba(0, 230, 118, 0.4);
+            color: #69F0AE;
+        }
+
+        .tg-help-box {
+            background: #10161D;
+            border: 1px solid #273442;
+            border-radius: 9px;
+            padding: 10px;
+            font-size: 11.5px;
+            color: #9FB0C2;
+            line-height: 1.45;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="alarmBanner">
+        <div id="alarmText">🚨 CẢNH BÁO: XE ĐÃ RỜI KHỎI VỊ TRÍ ĐỖ AN TOÀN!</div>
+        <div class="alarm-actions">
+            <button id="btnBannerSiren" class="alarm-chip-btn" onclick="onBannerSirenClick()">🔕 Tắt còi</button>
+            <button class="alarm-chip-btn alarm-chip-unlock" onclick="unlockGuardFromBanner()">🔓 Tắt báo động &amp; Mở khóa</button>
+        </div>
+    </div>
+
+    <div id="header">
+        <div class="logo-group">
+            <span style="font-size: 22px;">🚗</span>
+            <div>
+                <div class="logo-title">ĐỊNH VỊ Ô TÔ</div>
+                <div class="logo-sub" style="font-size: 11px; color: #8F9CA8;">Giám sát thời gian thực</div>
+            </div>
+        </div>
+        <div class="controls">
+            <input type="text" id="vehicleInput" value="XE001">
+            <button onclick="switchVehicle()">Đổi</button>
+            <span id="badge" class="status-badge status-offline">● ĐANG TẢI...</span>
+            <a id="btnAdminLink" href="/admin" class="hdr-icon-btn hdr-admin-btn" style="display:none;" title="Quản trị bán hàng">🛠️</a>
+            <button id="btnSettings" class="hdr-icon-btn" onclick="openSettingsModal()" title="Tài khoản & Telegram">⚙️</button>
+        </div>
+    </div>
+
+    <div id="container">
+        <!-- BÊN PHẢI/TRÊN: BẢN ĐỒ -->
+        <div id="mapWrapper">
+            <div id="map"></div>
+            <div class="map-float-tools">
+                <button id="btnFollow" class="float-btn active" onclick="toggleFollow()">🎯 Ghim xe</button>
+                <button id="btnLayer" class="float-btn" onclick="toggleMapLayer()">🛰️ Vệ tinh</button>
+                <button class="float-btn" onclick="focusCar()">🔍 Tìm xe</button>
+                <button id="btnMyLocation" class="float-btn" onclick="toggleMyLocation()">📍 Vị trí của bạn</button>
+            </div>
+        </div>
+
+        <!-- BÊN TRÁI/DƯỚI: BẢNG THÔNG TIN -->
+        <div id="sidebar">
+
+            <!-- Danh sách chọn nhanh xe -->
+            <div id="vehicleChips"></div>
+
+            <!-- Trạng thái & Địa chỉ thực tế -->
+            <div class="card">
+                <div class="vehicle-meta-row">
+                    <span id="vehicleDisplayName" style="font-size:12px;font-weight:700;color:#DCE7F2;">🚗 XE001</span>
+                    <span id="planExpiryPill" class="plan-pill" style="display:none;">--</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div class="card-label">Trạng thái tức thời</div>
+                        <div id="carStatus" class="card-value">Đang chờ tín hiệu...</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="card-label">Tốc độ</div>
+                        <div id="valSpeedBig" style="font-size: 22px; font-weight: bold; color: #0088FF;">0.0 km/h</div>
+                    </div>
+                </div>
+                <div id="lastUpdated" class="card-sub">Cập nhật: --:--:--</div>
+                <div id="addressText" class="address-line">📍 Đang dò tên đường...</div>
+            </div>
+
+            <!-- Nút dẫn đường nhanh 1 chạm -->
+            <div class="action-row">
+                <button onclick="openGoogleMaps()" style="padding: 11px; background: #0088FF;">
+                    🗺️ Google Maps tới xe
+                </button>
+                <button onclick="openAppleMaps()" class="btn-secondary" style="padding: 11px;">
+                    🍎 Apple Maps
+                </button>
+            </div>
+
+            <!-- Khóa bãi đỗ / Chống trộm (Đồng bộ Server + Còi báo + Chọn bán kính) -->
+            <div class="guard-card">
+                <div class="guard-header">
+                    <span class="card-label" style="margin: 0;">🛡️ Khóa Bãi Đỗ Chống Trộm</span>
+                    <button id="btnSirenToggle" class="siren-pill on" onclick="toggleSirenSetting()">🔊 Còi: BẬT</button>
+                </div>
+                <div class="radius-pills">
+                    <button class="radius-pill" data-radius="50" onclick="selectGuardRadius(50)">50m</button>
+                    <button class="radius-pill active" data-radius="100" onclick="selectGuardRadius(100)">100m</button>
+                    <button class="radius-pill" data-radius="200" onclick="selectGuardRadius(200)">200m</button>
+                    <button class="radius-pill" data-radius="500" onclick="selectGuardRadius(500)">500m</button>
+                </div>
+                <button id="btnGuard" class="guard-btn guard-off" onclick="toggleGeofence()">
+                    🔓 Khóa Bãi Đỗ Chống Trộm (Bán kính 100m)
+                </button>
+                <div id="guardSubInfo" class="guard-sub"></div>
+            </div>
+
+            <!-- Thống kê hành trình -->
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span class="card-label" style="margin:0;">Thống kê lộ trình</span>
+                    <span id="historyScopeLabel" style="font-size:11px;color:#66B8FF;font-weight:600;">Tất cả</span>
+                </div>
+                <div class="stat-grid" style="margin-top: 6px;">
+                    <div class="stat-box">
+                        <div class="card-label">QUÃNG ĐƯỜNG</div>
+                        <div id="valTotalKm" class="stat-box-num" style="color: #0088FF;">0.00 km</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="card-label">VẬN TỐC TỐI ĐA</div>
+                        <div id="valMaxSpeed" class="stat-box-num" style="color: #00E676;">0.0 km/h</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="card-label">VĨ ĐỘ (LAT)</div>
+                        <div id="valLat" class="stat-box-num">--.-----</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="card-label">KINH ĐỘ (LNG)</div>
+                        <div id="valLng" class="stat-box-num">--.-----</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hộp điều khiển Tua lại hành trình -->
+            <div class="playback-box">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="card-label" style="color: #0088FF; margin: 0;">TUA LẠI LỘ TRÌNH (PLAYBACK)</span>
+                    <span id="pointCountLabel" style="font-size: 11px; color: #8F9CA8;">0 điểm</span>
+                </div>
+                <div class="date-filter-row">
+                    <button id="btnDateToday" class="date-pill" onclick="setHistoryPreset('today')">Hôm nay</button>
+                    <button id="btnDateYesterday" class="date-pill" onclick="setHistoryPreset('yesterday')">Hôm qua</button>
+                    <button id="btnDateAll" class="date-pill active" onclick="setHistoryPreset('all')">Tất cả</button>
+                    <input type="date" id="historyDateInput" class="date-input" onchange="onHistoryDatePicked(this.value)">
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <button id="btnPlay" class="btn-success" style="flex: 1;" onclick="togglePlayback()">▶️ Tua Lại</button>
+                    <button class="btn-danger" onclick="clearRouteHistory()">Xóa Vết</button>
+                </div>
+
+                <div class="slider-row">
+                    <input type="range" id="playbackSlider" min="0" max="0" value="0" oninput="onSliderMove(this.value)">
+                    <span id="sliderTime" style="font-size: 11px; color: #8F9CA8; min-width: 48px;">0/0</span>
+                </div>
+            </div>
+
+            <!-- Link mở máy phát GPS thật -->
+            <div class="action-row">
+                <button onclick="openClaimModal()" class="btn-secondary" style="padding: 10px; font-size: 12.5px; border-color: #0088FF; color: #66B8FF;">
+                    ➕ Kích hoạt thêm xe
+                </button>
+                <button onclick="window.location.href='/xe.html'" class="btn-secondary" style="padding: 10px; font-size: 12.5px;">
+                    📡 Máy phát GPS
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL ĐĂNG NHẬP / ĐĂNG KÝ -->
+    <div id="authModal" class="modal-overlay">
+        <div class="modal-card">
+            <div style="text-align:center;">
+                <div style="font-size:32px;">🚗</div>
+                <div style="font-size:18px;font-weight:800;color:#fff;margin-top:4px;">Định Vị Ô Tô Cloud</div>
+                <div style="font-size:12px;color:#8F9CA8;margin-top:2px;">Đăng nhập để xem xe, chống trộm & nhận cảnh báo</div>
+            </div>
+
+            <div class="modal-tabs">
+                <button id="tabLogin" class="modal-tab active" onclick="switchAuthTab('login')">Đăng nhập</button>
+                <button id="tabRegister" class="modal-tab" onclick="switchAuthTab('register')">Đăng ký</button>
+            </div>
+
+            <div id="authErrBox" class="msg-box msg-err"></div>
+
+            <div id="loginFields" style="display:flex;flex-direction:column;gap:10px;">
+                <div class="form-field">
+                    <label>Tài khoản</label>
+                    <input type="text" id="loginUser" placeholder="Nhập tên đăng nhập" autocomplete="username">
+                </div>
+                <div class="form-field">
+                    <label>Mật khẩu</label>
+                    <input type="password" id="loginPass" placeholder="Nhập mật khẩu" autocomplete="current-password"
+                           onkeydown="if(event.key==='Enter') submitLogin()">
+                </div>
+                <button onclick="submitLogin()" style="padding:12px;font-size:14px;">🔐 Đăng nhập</button>
+            </div>
+
+            <div id="registerFields" style="display:none;flex-direction:column;gap:10px;">
+                <div class="form-field">
+                    <label>Tên đăng nhập (3-32 ký tự)</label>
+                    <input type="text" id="regUser" placeholder="VD: nguyenvana" autocomplete="username">
+                </div>
+                <div class="form-field">
+                    <label>Mật khẩu (tối thiểu 6 ký tự)</label>
+                    <input type="password" id="regPass" placeholder="Ít nhất 6 ký tự" autocomplete="new-password">
+                </div>
+                <div class="form-field">
+                    <label>Họ tên</label>
+                    <input type="text" id="regFullName" placeholder="VD: Nguyễn Văn A">
+                </div>
+                <div class="form-field">
+                    <label>Số điện thoại</label>
+                    <input type="text" id="regPhone" placeholder="0909xxxxxx"
+                           onkeydown="if(event.key==='Enter') submitRegister()">
+                </div>
+                <button onclick="submitRegister()" class="btn-success" style="padding:12px;font-size:14px;">✨ Tạo tài khoản</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL KÍCH HOẠT XE -->
+    <div id="claimModal" class="modal-overlay" onclick="if(event.target===this) closeClaimModal()">
+        <div class="modal-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong style="font-size:16px;">➕ Kích hoạt &amp; Gắn xe mới</strong>
+                <button class="btn-secondary" style="padding:4px 9px;" onclick="closeClaimModal()">✕</button>
+            </div>
+            <div style="font-size:12px;color:#9FB0C2;">Nhập Biển số/Mã xe và Mã kích hoạt do người bán cung cấp để gắn xe vào tài khoản của bạn.</div>
+            <div id="claimMsgBox" class="msg-box"></div>
+            <div class="form-field">
+                <label>Mã xe / Biển số</label>
+                <input type="text" id="claimVehicleId" placeholder="VD: 51H12345" style="text-transform:uppercase;">
+            </div>
+            <div class="form-field">
+                <label>Mã kích hoạt (Activation Code)</label>
+                <input type="text" id="claimCode" placeholder="VD: CT-A1B2C3" style="text-transform:uppercase;">
+            </div>
+            <div class="form-field">
+                <label>Tên gợi nhớ (Tùy chọn)</label>
+                <input type="text" id="claimName" placeholder="VD: Mazda CX5 Gia đình">
+            </div>
+            <button onclick="submitClaimVehicle()" style="padding:11px;">🔗 Kích hoạt ngay</button>
+        </div>
+    </div>
+
+    <!-- MODAL CÀI ĐẶT TÀI KHOẢN & TELEGRAM -->
+    <div id="settingsModal" class="modal-overlay" onclick="if(event.target===this) closeSettingsModal()">
+        <div class="modal-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong style="font-size:16px;">⚙️ Tài khoản &amp; Cảnh báo Telegram</strong>
+                <button class="btn-secondary" style="padding:4px 9px;" onclick="closeSettingsModal()">✕</button>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;background:#10161D;padding:9px 11px;border-radius:9px;border:1px solid #263442;">
+                <div>
+                    <div id="setUserBadge" style="font-size:13px;font-weight:700;color:#fff;">--</div>
+                    <div id="setBotStatus" style="font-size:11px;color:#8F9CA8;margin-top:2px;">--</div>
+                </div>
+                <button class="btn-danger" style="padding:6px 10px;font-size:12px;" onclick="logoutUser()">Đăng xuất</button>
+            </div>
+
+            <div id="setMsgBox" class="msg-box"></div>
+
+            <div class="form-field">
+                <label>Họ tên</label>
+                <input type="text" id="setFullName" placeholder="Tên của bạn">
+            </div>
+            <div class="form-field">
+                <label>Số điện thoại</label>
+                <input type="text" id="setPhone" placeholder="Số điện thoại">
+            </div>
+            <div class="form-field">
+                <label>Telegram Chat ID (Cảnh báo 24/7 khi tắt màn hình)</label>
+                <input type="text" id="setTelegramChatId" placeholder="VD: 5123456789">
+            </div>
+            <div class="tg-help-box">
+                📌 <b>Cách lấy Chat ID miễn phí:</b> Mở Telegram ➔ tìm <code>@userinfobot</code> để lấy ID số của bạn ➔ quay lại bot cảnh báo của hệ thống bấm <b>Start (/start)</b> để nhận cảnh báo chống trộm &amp; quá tốc độ tức thì kể cả khi khóa iPhone.
+            </div>
+            <button class="btn-secondary" onclick="testTelegramAlert()" style="padding:9px;font-size:12.5px;">
+                📨 Gửi tin nhắn Telegram thử
+            </button>
+
+            <div style="border-top:1px solid #273442;padding-top:10px;display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:11px;color:#8F9CA8;font-weight:700;">ĐỔI MẬT KHẨU (BỎ TRỐNG NẾU KHÔNG ĐỔI)</div>
+                <input type="password" id="setCurrPass" placeholder="Mật khẩu hiện tại">
+                <input type="password" id="setNewPass" placeholder="Mật khẩu mới (>= 6 ký tự)">
+            </div>
+
+            <button onclick="saveProfileSettings()" style="padding:11px;">💾 Lưu cài đặt</button>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Khởi tạo bản đồ
+        const map = L.map('map', { zoomControl: true }).setView([10.7769, 106.7009], 15);
+
+        // 2 lớp bản đồ: Đường phố (OSM) & Vệ tinh (Esri Satellite)
+        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap',
+            maxZoom: 19
+        });
+
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; Esri Satellite',
+            maxZoom: 19
+        });
+
+        streetLayer.addTo(map);
+        let isSatellite = false;
+
+        setTimeout(() => { map.invalidateSize(); }, 500);
+        window.addEventListener('resize', () => { map.invalidateSize(); });
+
+        let authToken = localStorage.getItem('car_tracker_token') || '';
+        let currentUser = null;
+        try {
+            currentUser = JSON.parse(localStorage.getItem('car_tracker_user') || 'null');
+        } catch (_) { currentUser = null; }
+        let telegramBotConfigured = false;
+        let pollTimers = [];
+
+        let carMarker = null;
+        let lastCarHasBearing = null;
+        let userLocationMarker = null;
+        let userAccuracyCircle = null;
+        let myLocationWatchId = null;
+        let myLocationCenteredOnce = false;
+
+        let routePolyline = null;
+        let geofenceCircle = null;
+        let geofenceCenterMarker = null;
+        let historyPoints = [];
+        let historyDateStr = '';
+        let latestCoords = null;
+        let lastGeocodedCoords = null;
+        let currentVehicleData = null;
+        let autoFollow = true;
+        let isFirstFocus = true;
+        let isPlaybackPlaying = false;
+        let playbackIndex = 0;
+        let playbackInterval = null;
+
+        let selectedGuardRadius = parseInt(localStorage.getItem('preferred_guard_radius') || '100', 10) || 100;
+        let sirenEnabled = localStorage.getItem('guard_siren_enabled') !== 'false';
+        let sirenMutedForCurrentBreach = false;
+        let wasBreached = false;
+        let audioCtx = null;
+        let sirenTimer = null;
+
+        function escapeHtml(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function getVehicleId() {
+            return (document.getElementById('vehicleInput').value.trim() || 'XE001').toUpperCase();
+        }
+
+        function stopPolling() {
+            pollTimers.forEach(id => clearInterval(id));
+            pollTimers = [];
+        }
+
+        function startPolling() {
+            stopPolling();
+            fetchVehicleList();
+            fetchRealtimeLocation();
+            fetchHistory();
+            pollTimers.push(setInterval(fetchRealtimeLocation, 2500));
+            pollTimers.push(setInterval(fetchHistory, 5000));
+            pollTimers.push(setInterval(fetchVehicleList, 15000));
+        }
+
+        async function apiFetch(url, options = {}) {
+            const headers = Object.assign({}, options.headers || {});
+            if (authToken) {
+                headers['Authorization'] = `Bearer ${authToken}`;
+            }
+            const res = await fetch(url, Object.assign({}, options, { headers }));
+            if (res.status === 401) {
+                handleSessionExpired('Phiên đăng nhập đã hết hạn hoặc không hợp lệ.');
+                throw new Error('UNAUTHORIZED');
+            }
+            return res;
+        }
+
+        function handleSessionExpired(msg) {
+            authToken = '';
+            currentUser = null;
+            localStorage.removeItem('car_tracker_token');
+            localStorage.removeItem('car_tracker_user');
+            stopPolling();
+            stopPlayback();
+            stopSiren();
+            showAuthModal(msg || 'Vui lòng đăng nhập để tiếp tục.');
+        }
+
+        function showAuthModal(errMsg = '') {
+            document.getElementById('authModal').style.display = 'flex';
+            const box = document.getElementById('authErrBox');
+            if (errMsg) {
+                box.innerText = errMsg;
+                box.style.display = 'block';
+            } else {
+                box.style.display = 'none';
+            }
+        }
+
+        function hideAuthModal() {
+            document.getElementById('authModal').style.display = 'none';
+            document.getElementById('authErrBox').style.display = 'none';
+        }
+
+        function switchAuthTab(tab) {
+            const isLogin = tab === 'login';
+            document.getElementById('tabLogin').classList.toggle('active', isLogin);
+            document.getElementById('tabRegister').classList.toggle('active', !isLogin);
+            document.getElementById('loginFields').style.display = isLogin ? 'flex' : 'none';
+            document.getElementById('registerFields').style.display = isLogin ? 'none' : 'flex';
+            document.getElementById('authErrBox').style.display = 'none';
+        }
+
+        async function submitLogin() {
+            const username = document.getElementById('loginUser').value.trim();
+            const password = document.getElementById('loginPass').value;
+            if (!username || !password) return showAuthModal('Vui lòng nhập tài khoản và mật khẩu.');
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (!res.ok) return showAuthModal(data.message || 'Đăng nhập thất bại.');
+                onAuthSuccess(data);
+            } catch (e) {
+                showAuthModal('Không thể kết nối máy chủ: ' + e.message);
+            }
+        }
+
+        async function submitRegister() {
+            const username = document.getElementById('regUser').value.trim();
+            const password = document.getElementById('regPass').value;
+            const fullName = document.getElementById('regFullName').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            if (!username || !password) return showAuthModal('Vui lòng nhập tên đăng nhập và mật khẩu.');
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, fullName, phone })
+                });
+                const data = await res.json();
+                if (!res.ok) return showAuthModal(data.message || 'Đăng ký thất bại.');
+                onAuthSuccess(data);
+            } catch (e) {
+                showAuthModal('Không thể kết nối máy chủ: ' + e.message);
+            }
+        }
+
+        function onAuthSuccess(data) {
+            authToken = data.token;
+            currentUser = data.user;
+            telegramBotConfigured = Boolean(data.telegramBotConfigured);
+            localStorage.setItem('car_tracker_token', authToken);
+            localStorage.setItem('car_tracker_user', JSON.stringify(currentUser));
+            applyUserHeaderUI();
+            hideAuthModal();
+            isFirstFocus = true;
+            startPolling();
+        }
+
+        function applyUserHeaderUI() {
+            const adminBtn = document.getElementById('btnAdminLink');
+            if (adminBtn) {
+                adminBtn.style.display = (currentUser && currentUser.role === 'ADMIN') ? 'inline-flex' : 'none';
+            }
+        }
+
+        function logoutUser() {
+            closeSettingsModal();
+            handleSessionExpired('Bạn đã đăng xuất.');
+        }
+
+        async function initAuthSession() {
+            if (!authToken) {
+                showAuthModal('');
+                return;
+            }
+            try {
+                const res = await apiFetch('/api/auth/me');
+                if (!res.ok) {
+                    handleSessionExpired('');
+                    return;
+                }
+                const data = await res.json();
+                currentUser = data.user;
+                telegramBotConfigured = Boolean(data.telegramBotConfigured);
+                localStorage.setItem('car_tracker_user', JSON.stringify(currentUser));
+                applyUserHeaderUI();
+                hideAuthModal();
+                startPolling();
+            } catch (_) {}
+        }
+
+        function openClaimModal() {
+            document.getElementById('claimMsgBox').style.display = 'none';
+            document.getElementById('claimVehicleId').value = '';
+            document.getElementById('claimCode').value = '';
+            document.getElementById('claimName').value = '';
+            document.getElementById('claimModal').style.display = 'flex';
+        }
+
+        function closeClaimModal() {
+            document.getElementById('claimModal').style.display = 'none';
+        }
+
+        function showModalMsg(elId, text, isOk) {
+            const box = document.getElementById(elId);
+            box.className = 'msg-box ' + (isOk ? 'msg-ok' : 'msg-err');
+            box.innerText = text;
+            box.style.display = 'block';
+        }
+
+        async function submitClaimVehicle() {
+            const vehicleId = document.getElementById('claimVehicleId').value.trim().toUpperCase();
+            const activationCode = document.getElementById('claimCode').value.trim().toUpperCase();
+            const vehicleName = document.getElementById('claimName').value.trim();
+            if (!vehicleId || !activationCode) {
+                return showModalMsg('claimMsgBox', 'Vui lòng nhập Mã xe và Mã kích hoạt.', false);
+            }
+            try {
+                const res = await apiFetch('/vehicles/claim', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vehicleId, activationCode, vehicleName })
+                });
+                const data = await res.json();
+                if (!res.ok) return showModalMsg('claimMsgBox', data.message || 'Kích hoạt xe thất bại.', false);
+                showModalMsg('claimMsgBox', data.message || 'Đã gắn xe thành công!', true);
+                setTimeout(() => {
+                    closeClaimModal();
+                    switchVehicle(data.vehicle ? data.vehicle.vehicleId : vehicleId);
+                }, 650);
+            } catch (e) {
+                if (e.message !== 'UNAUTHORIZED') showModalMsg('claimMsgBox', 'Lỗi: ' + e.message, false);
+            }
+        }
+
+        function openSettingsModal() {
+            if (!currentUser) return showAuthModal('');
+            document.getElementById('setMsgBox').style.display = 'none';
+            document.getElementById('setUserBadge').innerText = `👤 ${currentUser.username} (${currentUser.role})`;
+            document.getElementById('setBotStatus').innerText = telegramBotConfigured
+                ? '✅ Bot Telegram 24/7 đã bật'
+                : '⚠️ Quản trị viên chưa gắn Bot Token Telegram';
+            document.getElementById('setBotStatus').style.color = telegramBotConfigured ? '#00E676' : '#FFA726';
+            document.getElementById('setFullName').value = currentUser.fullName || '';
+            document.getElementById('setPhone').value = currentUser.phone || '';
+            document.getElementById('setTelegramChatId').value = currentUser.telegramChatId || '';
+            document.getElementById('setCurrPass').value = '';
+            document.getElementById('setNewPass').value = '';
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        async function saveProfileSettings() {
+            const payload = {
+                fullName: document.getElementById('setFullName').value.trim(),
+                phone: document.getElementById('setPhone').value.trim(),
+                telegramChatId: document.getElementById('setTelegramChatId').value.trim()
+            };
+            const curr = document.getElementById('setCurrPass').value;
+            const next = document.getElementById('setNewPass').value;
+            if (next) {
+                payload.currentPassword = curr;
+                payload.newPassword = next;
+            }
+            try {
+                const res = await apiFetch('/api/auth/profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) return showModalMsg('setMsgBox', data.message || 'Lưu thất bại.', false);
+                currentUser = data.user;
+                localStorage.setItem('car_tracker_user', JSON.stringify(currentUser));
+                document.getElementById('setCurrPass').value = '';
+                document.getElementById('setNewPass').value = '';
+                showModalMsg('setMsgBox', data.message || 'Đã lưu cài đặt!', true);
+            } catch (e) {
+                if (e.message !== 'UNAUTHORIZED') showModalMsg('setMsgBox', 'Lỗi: ' + e.message, false);
+            }
+        }
+
+        async function testTelegramAlert() {
+            const chatId = document.getElementById('setTelegramChatId').value.trim();
+            showModalMsg('setMsgBox', 'Đang gửi tin nhắn thử tới Telegram...', true);
+            try {
+                const res = await apiFetch('/api/telegram/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chatId })
+                });
+                const data = await res.json();
+                showModalMsg('setMsgBox', data.message || (data.ok ? 'Đã gửi!' : 'Gửi thất bại.'), Boolean(data.ok));
+            } catch (e) {
+                if (e.message !== 'UNAUTHORIZED') showModalMsg('setMsgBox', 'Lỗi: ' + e.message, false);
+            }
+        }
+
+        function createCarDivIcon(bearing) {
+            const hasBearing = bearing !== null && bearing !== undefined && !isNaN(parseFloat(bearing));
+            const rot = hasBearing ? Math.round(parseFloat(bearing)) : 0;
+            return L.divIcon({
+                className: 'car-dir-marker',
+                iconSize: [44, 44],
+                iconAnchor: [22, 22],
+                popupAnchor: [0, -22],
+                html: `<div class="car-marker-wrap">` +
+                    (hasBearing ? `<div class="car-heading-ring" style="transform: rotate(${rot}deg);"><div class="car-heading-arrow"></div></div>` : '') +
+                    `<img src="https://cdn-icons-png.flaticon.com/512/3202/3202926.png" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.75));" alt="car" />` +
+                    `</div>`
+            });
+        }
+
+        function updateCarMarker(lat, lng, bearing) {
+            const hasBearing = bearing !== null && bearing !== undefined && !isNaN(parseFloat(bearing));
+            if (!carMarker) {
+                lastCarHasBearing = hasBearing;
+                carMarker = L.marker([lat, lng], { icon: createCarDivIcon(bearing) }).addTo(map);
+                return;
+            }
+            carMarker.setLatLng([lat, lng]);
+            if (lastCarHasBearing !== hasBearing) {
+                lastCarHasBearing = hasBearing;
+                carMarker.setIcon(createCarDivIcon(bearing));
+            } else if (hasBearing) {
+                const el = carMarker.getElement();
+                const ring = el ? el.querySelector('.car-heading-ring') : null;
+                if (ring) {
+                    ring.style.transform = `rotate(${Math.round(parseFloat(bearing))}deg)`;
+                }
+            }
+        }
+
+        function toggleMyLocation() {
+            const btn = document.getElementById('btnMyLocation');
+            if (myLocationWatchId !== null) {
+                navigator.geolocation.clearWatch(myLocationWatchId);
+                myLocationWatchId = null;
+                if (userLocationMarker) { map.removeLayer(userLocationMarker); userLocationMarker = null; }
+                if (userAccuracyCircle) { map.removeLayer(userAccuracyCircle); userAccuracyCircle = null; }
+                btn.classList.remove('active');
+                btn.innerText = '📍 Vị trí của bạn';
+                return;
+            }
+            if (!navigator.geolocation) {
+                return alert('Trình duyệt không hỗ trợ định vị GPS.');
+            }
+            myLocationCenteredOnce = false;
+            btn.classList.add('active');
+            btn.innerText = '📍 Đang định vị...';
+            myLocationWatchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    const acc = pos.coords.accuracy || 20;
+                    btn.innerText = '📍 Đang hiện vị trí';
+                    if (!userLocationMarker) {
+                        userLocationMarker = L.marker([lat, lng], {
+                            icon: L.divIcon({
+                                className: 'car-dir-marker',
+                                html: '<div class="user-gps-dot"></div>',
+                                iconSize: [16, 16],
+                                iconAnchor: [8, 8]
+                            }),
+                            interactive: false
+                        }).addTo(map);
+                    } else {
+                        userLocationMarker.setLatLng([lat, lng]);
+                    }
+                    if (!userAccuracyCircle) {
+                        userAccuracyCircle = L.circle([lat, lng], {
+                            color: '#0088FF',
+                            fillColor: '#0088FF',
+                            fillOpacity: 0.12,
+                            weight: 1,
+                            radius: acc
+                        }).addTo(map);
+                    } else {
+                        userAccuracyCircle.setLatLng([lat, lng]);
+                        userAccuracyCircle.setRadius(acc);
+                    }
+                    if (!myLocationCenteredOnce) {
+                        myLocationCenteredOnce = true;
+                        if (autoFollow) toggleFollow();
+                        map.setView([lat, lng], Math.max(map.getZoom(), 16));
+                    }
+                },
+                (err) => {
+                    btn.classList.remove('active');
+                    btn.innerText = '📍 Vị trí của bạn';
+                    if (myLocationWatchId !== null) {
+                        navigator.geolocation.clearWatch(myLocationWatchId);
+                        myLocationWatchId = null;
+                    }
+                    alert('Không lấy được vị trí hiện tại: ' + err.message);
+                },
+                { enableHighAccuracy: true, maximumAge: 5000, timeout: 12000 }
+            );
+        }
+
+        function getLocalYmd(offsetDays = 0) {
+            const d = new Date();
+            d.setDate(d.getDate() + offsetDays);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function updateDateFilterPills(mode) {
+            document.getElementById('btnDateToday').classList.toggle('active', mode === 'today');
+            document.getElementById('btnDateYesterday').classList.toggle('active', mode === 'yesterday');
+            document.getElementById('btnDateAll').classList.toggle('active', mode === 'all');
+            const lbl = document.getElementById('historyScopeLabel');
+            if (mode === 'today') lbl.innerText = `Hôm nay (${historyDateStr})`;
+            else if (mode === 'yesterday') lbl.innerText = `Hôm qua (${historyDateStr})`;
+            else if (mode === 'custom' && historyDateStr) lbl.innerText = `Ngày ${historyDateStr}`;
+            else lbl.innerText = 'Tất cả';
+        }
+
+        function setHistoryPreset(mode) {
+            stopPlayback();
+            if (mode === 'today') {
+                historyDateStr = getLocalYmd(0);
+                document.getElementById('historyDateInput').value = historyDateStr;
+            } else if (mode === 'yesterday') {
+                historyDateStr = getLocalYmd(-1);
+                document.getElementById('historyDateInput').value = historyDateStr;
+            } else {
+                historyDateStr = '';
+                document.getElementById('historyDateInput').value = '';
+            }
+            updateDateFilterPills(mode);
+            fetchHistory();
+        }
+
+        function onHistoryDatePicked(val) {
+            stopPlayback();
+            historyDateStr = val || '';
+            updateDateFilterPills(val ? 'custom' : 'all');
+            fetchHistory();
+        }
+
+        function toggleMapLayer() {
+            const btn = document.getElementById('btnLayer');
+            if (isSatellite) {
+                map.removeLayer(satelliteLayer);
+                streetLayer.addTo(map);
+                btn.innerText = '🛰️ Vệ tinh';
+                btn.classList.remove('active');
+            } else {
+                map.removeLayer(streetLayer);
+                satelliteLayer.addTo(map);
+                btn.innerText = '🗺️ Đường phố';
+                btn.classList.add('active');
+            }
+            isSatellite = !isSatellite;
+        }
+
+        function toggleFollow() {
+            autoFollow = !autoFollow;
+            const btn = document.getElementById('btnFollow');
+            if (autoFollow) {
+                btn.classList.add('active');
+                btn.innerText = '🎯 Ghim xe';
+                focusCar();
+            } else {
+                btn.classList.remove('active');
+                btn.innerText = '🔓 Tự do';
+            }
+        }
+
+        function focusCar() {
+            if (latestCoords) {
+                map.setView([latestCoords.lat, latestCoords.lng], 17);
+            }
+        }
+
+        function switchVehicle(customId) {
+            if (customId) {
+                document.getElementById('vehicleInput').value = customId;
+            }
+            stopPlayback();
+            stopSiren();
+            isFirstFocus = true;
+            latestCoords = null;
+            lastGeocodedCoords = null;
+            currentVehicleData = null;
+            wasBreached = false;
+            sirenMutedForCurrentBreach = false;
+            historyPoints = [];
+            if (routePolyline) map.removeLayer(routePolyline);
+            routePolyline = null;
+
+            document.getElementById('addressText').innerText = '📍 Đang dò tên đường...';
+            applyServerGuardState(null);
+            fetchRealtimeLocation();
+            fetchHistory();
+            fetchVehicleList();
+        }
+
+        // Tải danh sách xe nhanh
+        function fetchVehicleList() {
+            if (!authToken) return;
+            apiFetch('/vehicles')
+                .then(res => res.json())
+                .then(list => {
+                    const container = document.getElementById('vehicleChips');
+                    const current = getVehicleId();
+                    if (!Array.isArray(list)) return;
+
+                    if (list.length > 0 && !list.some(v => v.vehicleId === current)) {
+                        document.getElementById('vehicleInput').value = list[0].vehicleId;
+                        isFirstFocus = true;
+                        fetchRealtimeLocation();
+                        fetchHistory();
+                    }
+
+                    const activeId = getVehicleId();
+                    const chipsHtml = list.map(v => {
+                        const safeId = escapeHtml(v.vehicleId);
+                        const label = v.vehicleName ? `${escapeHtml(v.vehicleName)} (${safeId})` : safeId;
+                        return `<div class="chip ${v.vehicleId === activeId ? 'active' : ''}" onclick="switchVehicle('${safeId}')">🚗 ${label}</div>`;
+                    }).join('');
+                    container.innerHTML = chipsHtml + `<div class="chip chip-add" onclick="openClaimModal()">➕ Kích hoạt xe</div>`;
+                })
+                .catch(() => {});
+        }
+
+        // Tính khoảng cách theo mét (Haversine)
+        function calcDistanceMeters(lat1, lon1, lat2, lon2) {
+            const R = 6371000;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        // Kiểm tra xem xe có thực sự đang ONLINE không (cập nhật trong vòng 45 giây)
+        function parseAgeSeconds(lastUpdatedStr) {
+            if (!lastUpdatedStr) return 999999;
+            // Format từ server: "yyyy-MM-dd HH:mm:ss"
+            const parsed = new Date(lastUpdatedStr.replace(' ', 'T'));
+            if (isNaN(parsed.getTime())) return 999999;
+            return Math.max(0, Math.floor((Date.now() - parsed.getTime()) / 1000));
+        }
+
+        function formatAgeText(sec) {
+            if (sec < 60) return `${sec} giây trước`;
+            if (sec < 3600) return `${Math.floor(sec / 60)} phút trước`;
+            if (sec < 86400) return `${Math.floor(sec / 3600)} giờ trước`;
+            return `${Math.floor(sec / 86400)} ngày trước`;
+        }
+
+        function fetchRealtimeLocation() {
+            if (!authToken || isPlaybackPlaying) return;
+
+            const vId = getVehicleId();
+            apiFetch(`/get-location/${encodeURIComponent(vId)}`)
+                .then(res => {
+                    if (!res.ok) throw new Error("Not found");
+                    return res.json();
+                })
+                .then(data => {
+                    currentVehicleData = data;
+                    if (!data || data.latitude == null) {
+                        updateStatusUI(false, data);
+                        applyServerGuardState(null);
+                        return;
+                    }
+                    latestCoords = { lat: data.latitude, lng: data.longitude };
+
+                    updateStatusUI(true, data);
+                    updateCarMarker(data.latitude, data.longitude, data.bearing);
+
+                    if (isFirstFocus || autoFollow) {
+                        map.setView([data.latitude, data.longitude], isFirstFocus ? 17 : map.getZoom());
+                        isFirstFocus = false;
+                    }
+
+                    applyServerGuardState(data);
+                    updateAddressIfNeeded(data.latitude, data.longitude);
+                })
+                .catch(err => {
+                    if (err && err.message === 'UNAUTHORIZED') return;
+                    currentVehicleData = null;
+                    updateStatusUI(false, null);
+                    applyServerGuardState(null);
+                });
+        }
+
+        // Lấy tên đường tiếng Việt từ OpenStreetMap khi xe dịch chuyển > 60m
+        function updateAddressIfNeeded(lat, lng) {
+            if (lastGeocodedCoords) {
+                const moved = calcDistanceMeters(lastGeocodedCoords.lat, lastGeocodedCoords.lng, lat, lng);
+                if (moved < 60) return;
+            }
+            lastGeocodedCoords = { lat, lng };
+
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=vi`)
+                .then(res => res.json())
+                .then(geo => {
+                    if (geo && geo.display_name) {
+                        // Rút gọn địa chỉ cho gọn đẹp
+                        const parts = geo.display_name.split(',').slice(0, 4).join(', ');
+                        document.getElementById('addressText').innerText = `📍 ${parts}`;
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function updateStatusUI(hasData, data) {
+            const badge = document.getElementById('badge');
+            const carStatus = document.getElementById('carStatus');
+            const lastUpdated = document.getElementById('lastUpdated');
+            const valSpeedBig = document.getElementById('valSpeedBig');
+            const valLat = document.getElementById('valLat');
+            const valLng = document.getElementById('valLng');
+            const dispName = document.getElementById('vehicleDisplayName');
+            const planPill = document.getElementById('planExpiryPill');
+
+            if (data) {
+                const titleText = data.vehicleName ? `${data.vehicleName} • ${data.vehicleId}` : (data.vehicleId || getVehicleId());
+                dispName.innerText = `🚗 ${titleText}`;
+                if (data.planExpiresAt) {
+                    planPill.style.display = 'inline-block';
+                    if (data.planExpired) {
+                        planPill.className = 'plan-pill expired';
+                        planPill.innerText = `⛔ Hết hạn (${data.planExpiresAt})`;
+                    } else {
+                        planPill.className = 'plan-pill';
+                        planPill.innerText = `Hạn: ${data.planExpiresAt}`;
+                    }
+                } else {
+                    planPill.style.display = 'none';
+                }
+            } else {
+                dispName.innerText = `🚗 ${getVehicleId()}`;
+                planPill.style.display = 'none';
+            }
+
+            if (hasData && data) {
+                const ageSec = parseAgeSeconds(data.lastUpdated);
+                const isLive = ageSec <= 45;
+
+                if (data.planExpired) {
+                    badge.className = 'status-badge status-error';
+                    badge.innerText = '● HẾT HẠN';
+                } else if (isLive) {
+                    badge.className = 'status-badge status-online';
+                    badge.innerText = '● ONLINE';
+                } else {
+                    badge.className = 'status-badge status-offline';
+                    badge.innerText = '● ĐÃ DỪNG';
+                }
+
+                const speed = parseFloat(data.speed) || 0;
+                valSpeedBig.innerText = `${speed.toFixed(1)} km/h`;
+                valSpeedBig.style.color = speed > 80 ? '#FF5252' : '#0088FF';
+
+                valLat.innerText = data.latitude.toFixed(5);
+                valLng.innerText = data.longitude.toFixed(5);
+                lastUpdated.innerText = `Cập nhật: ${data.lastUpdated} (${formatAgeText(ageSec)})`;
+
+                if (data.planExpired) {
+                    carStatus.innerText = 'Gói cước hết hạn!';
+                    carStatus.style.color = '#FF5252';
+                } else if (!isLive) {
+                    carStatus.innerText = 'Xe tắt máy / Chờ';
+                    carStatus.style.color = '#FFA726';
+                } else if (speed > 80) {
+                    carStatus.innerText = '⚠️ Vượt 80 km/h!';
+                    carStatus.style.color = '#FF5252';
+                } else if (speed > 2) {
+                    carStatus.innerText = 'Đang di chuyển';
+                    carStatus.style.color = '#00E676';
+                } else {
+                    carStatus.innerText = 'Đang đỗ tại chỗ';
+                    carStatus.style.color = '#00B0FF';
+                }
+            } else {
+                badge.className = 'status-badge status-error';
+                badge.innerText = data ? '● CHỜ GPS' : '● CHƯA CÓ XE';
+                carStatus.innerText = data ? 'Chưa có tọa độ đầu' : 'Chưa có dữ liệu / Quyền truy cập';
+                carStatus.style.color = data ? '#FFA726' : '#FF5252';
+                valSpeedBig.innerText = '0.0 km/h';
+            }
+        }
+
+        function fetchHistory() {
+            if (!authToken || isPlaybackPlaying) return;
+
+            const vId = getVehicleId();
+            const q = historyDateStr ? `?date=${encodeURIComponent(historyDateStr)}` : '';
+            apiFetch(`/history/${encodeURIComponent(vId)}${q}`)
+                .then(res => res.ok ? res.json() : [])
+                .then(points => {
+                    if (!Array.isArray(points)) return;
+                    historyPoints = points;
+
+                    document.getElementById('pointCountLabel').innerText = `${points.length} điểm`;
+
+                    if (points.length === 0) {
+                        if (routePolyline) map.removeLayer(routePolyline);
+                        routePolyline = null;
+                        document.getElementById('playbackSlider').max = 0;
+                        document.getElementById('sliderTime').innerText = '0/0';
+                        return;
+                    }
+
+                    const latlngs = points.map(p => [p.latitude, p.longitude]);
+                    if (!routePolyline) {
+                        routePolyline = L.polyline(latlngs, {
+                            color: '#0088FF',
+                            weight: 5,
+                            opacity: 0.85,
+                            lineJoin: 'round'
+                        }).addTo(map);
+                    } else {
+                        routePolyline.setLatLngs(latlngs);
+                    }
+
+                    const slider = document.getElementById('playbackSlider');
+                    slider.max = Math.max(0, points.length - 1);
+                    document.getElementById('sliderTime').innerText = `${points.length}/${points.length}`;
+                })
+                .catch(() => {});
+
+            apiFetch(`/stats/${encodeURIComponent(vId)}${q}`)
+                .then(res => res.ok ? res.json() : null)
+                .then(stat => {
+                    if (stat) {
+                        document.getElementById('valTotalKm').innerText = `${stat.totalKm ?? 0} km`;
+                        document.getElementById('valMaxSpeed').innerText = `${stat.maxSpeedKmh ?? 0} km/h`;
+                    } else {
+                        document.getElementById('valTotalKm').innerText = '0.00 km';
+                        document.getElementById('valMaxSpeed').innerText = '0.0 km/h';
+                    }
+                })
+                .catch(() => {});
+        }
+
+        // DẪN ĐƯỜNG GOOGLE MAPS & APPLE MAPS
+        function openGoogleMaps() {
+            if (!latestCoords) return alert("Chưa có vị trí xe để dẫn đường!");
+            window.open(`https://www.google.com/maps/dir/?api=1&destination=${latestCoords.lat},${latestCoords.lng}`, '_blank');
+        }
+
+        function openAppleMaps() {
+            if (!latestCoords) return alert("Chưa có vị trí xe để dẫn đường!");
+            window.open(`https://maps.apple.com/?daddr=${latestCoords.lat},${latestCoords.lng}`, '_blank');
+        }
+
+        // TÍNH NĂNG KHÓA BÃI ĐỖ CHỐNG TRỘM (ĐỒNG BỘ SERVER + CÒI HÚ + CHỌN BÁN KÍNH)
+        const parkingPinIcon = L.divIcon({
+            className: 'parking-pin',
+            html: '<div style="font-size:20px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.7));transform:translate(-10px,-14px);">🅿️</div>',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+
+        function unlockAudioContext() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return false;
+                if (!audioCtx) audioCtx = new AudioCtx();
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume().catch(() => {});
+                }
+                // Kích âm siêu ngắn (gần như im lặng) trong thao tác chạm để Safari iOS mở khóa audio
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                gain.gain.value = 0.001;
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.03);
+                return audioCtx.state === 'running';
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function playAlarmSweep() {
+            if (!audioCtx || audioCtx.state !== 'running') return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.linearRampToValueAtTime(620, now + 0.22);
+                osc.frequency.linearRampToValueAtTime(880, now + 0.44);
+
+                gain.gain.setValueAtTime(0.001, now);
+                gain.gain.linearRampToValueAtTime(0.22, now + 0.04);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.52);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.55);
+            } catch (_) {}
+        }
+
+        function startSiren() {
+            if (!sirenEnabled || sirenMutedForCurrentBreach) {
+                stopSiren();
+                return;
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(() => {});
+            }
+            if (!sirenTimer) {
+                playAlarmSweep();
+                sirenTimer = setInterval(playAlarmSweep, 750);
+            }
+            try {
+                if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+            } catch (_) {}
+        }
+
+        function stopSiren() {
+            if (sirenTimer) {
+                clearInterval(sirenTimer);
+                sirenTimer = null;
+            }
+        }
+
+        function renderSirenSettingUI() {
+            const btn = document.getElementById('btnSirenToggle');
+            if (!btn) return;
+            if (sirenEnabled) {
+                btn.className = 'siren-pill on';
+                btn.innerText = '🔊 Còi: BẬT';
+            } else {
+                btn.className = 'siren-pill';
+                btn.innerText = '🔇 Còi: TẮT';
+            }
+        }
+
+        function toggleSirenSetting() {
+            unlockAudioContext();
+            sirenEnabled = !sirenEnabled;
+            localStorage.setItem('guard_siren_enabled', sirenEnabled ? 'true' : 'false');
+            renderSirenSettingUI();
+            if (!sirenEnabled) {
+                stopSiren();
+            } else {
+                sirenMutedForCurrentBreach = false;
+                if (currentVehicleData && currentVehicleData.guardBreached) {
+                    startSiren();
+                }
+            }
+            updateBannerSirenButton();
+        }
+
+        function updateBannerSirenButton() {
+            const btn = document.getElementById('btnBannerSiren');
+            if (!btn) return;
+            const audioReady = audioCtx && audioCtx.state === 'running';
+            if (!sirenEnabled || sirenMutedForCurrentBreach) {
+                btn.innerText = '🔊 Bật lại còi';
+            } else if (!audioReady) {
+                btn.innerText = '🔊 Bấm phát tiếng còi';
+            } else {
+                btn.innerText = '🔕 Tắt còi';
+            }
+        }
+
+        function onBannerSirenClick() {
+            const audioReady = unlockAudioContext();
+            if (!sirenEnabled || sirenMutedForCurrentBreach) {
+                sirenEnabled = true;
+                sirenMutedForCurrentBreach = false;
+                localStorage.setItem('guard_siren_enabled', 'true');
+                renderSirenSettingUI();
+                startSiren();
+            } else if (!audioReady && !sirenTimer) {
+                startSiren();
+            } else {
+                sirenMutedForCurrentBreach = true;
+                stopSiren();
+            }
+            updateBannerSirenButton();
+        }
+
+        function unlockGuardFromBanner() {
+            unlockAudioContext();
+            sendGuardUpdate(false);
+        }
+
+        function renderRadiusPillsUI() {
+            document.querySelectorAll('.radius-pill').forEach(el => {
+                const r = parseInt(el.getAttribute('data-radius'), 10);
+                el.classList.toggle('active', r === selectedGuardRadius);
+            });
+        }
+
+        function selectGuardRadius(radius) {
+            unlockAudioContext();
+            selectedGuardRadius = radius;
+            localStorage.setItem('preferred_guard_radius', String(radius));
+            renderRadiusPillsUI();
+
+            if (currentVehicleData && currentVehicleData.guardEnabled) {
+                sendGuardUpdate(true, radius, true);
+            } else {
+                applyServerGuardState(currentVehicleData);
+            }
+        }
+
+        function toggleGeofence() {
+            unlockAudioContext();
+            const isLocked = currentVehicleData && currentVehicleData.guardEnabled;
+            if (isLocked) {
+                sendGuardUpdate(false);
+            } else {
+                if (!latestCoords) return alert("Chưa xác định được vị trí xe để khóa!");
+                try {
+                    if ('Notification' in window && Notification.permission === 'default') {
+                        Notification.requestPermission().catch(() => {});
+                    }
+                } catch (_) {}
+                sendGuardUpdate(true, selectedGuardRadius, false);
+            }
+        }
+
+        function sendGuardUpdate(enabled, radius = selectedGuardRadius, keepCenter = false) {
+            const vId = getVehicleId();
+            const payload = { enabled: Boolean(enabled), radius: radius, keepCenter: Boolean(keepCenter) };
+            if (enabled && !keepCenter && latestCoords) {
+                payload.lat = latestCoords.lat;
+                payload.lng = latestCoords.lng;
+            }
+            apiFetch(`/guard/${encodeURIComponent(vId)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(res => res.json())
+                .then(resp => {
+                    if (resp && resp.status === 'ok') {
+                        currentVehicleData = resp.vehicle || currentVehicleData;
+                        if (!enabled && currentVehicleData) {
+                            currentVehicleData.guardEnabled = false;
+                            currentVehicleData.guardBreached = false;
+                        }
+                        applyServerGuardState(currentVehicleData);
+                    } else if (resp && resp.message) {
+                        alert(resp.message);
+                    }
+                })
+                .catch(err => {
+                    if (err && err.message !== 'UNAUTHORIZED') alert("Lỗi đồng bộ khóa chống trộm: " + err);
+                });
+        }
+
+        function notifyBreachDesktop(vId, distM, radius) {
+            try {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification(`🚨 CẢNH BÁO XE ${vId}!`, {
+                        body: `Xe đã di chuyển khỏi bãi đỗ an toàn ${distM}m (vượt giới hạn ${radius}m).`
+                    });
+                }
+            } catch (_) {}
+        }
+
+        function clearGeofenceLayers() {
+            if (geofenceCircle) {
+                map.removeLayer(geofenceCircle);
+                geofenceCircle = null;
+            }
+            if (geofenceCenterMarker) {
+                map.removeLayer(geofenceCenterMarker);
+                geofenceCenterMarker = null;
+            }
+        }
+
+        function applyServerGuardState(data) {
+            const btn = document.getElementById('btnGuard');
+            const subInfo = document.getElementById('guardSubInfo');
+            const banner = document.getElementById('alarmBanner');
+            const alarmText = document.getElementById('alarmText');
+
+            if (!data || !data.guardEnabled || data.guardLat == null || data.guardLng == null) {
+                clearGeofenceLayers();
+                banner.style.display = 'none';
+                stopSiren();
+                wasBreached = false;
+                sirenMutedForCurrentBreach = false;
+                btn.className = 'guard-btn guard-off';
+                btn.innerText = `🔓 Khóa Bãi Đỗ Chống Trộm (Bán kính ${selectedGuardRadius}m)`;
+                subInfo.style.display = 'none';
+                subInfo.innerText = '';
+                renderRadiusPillsUI();
+                return;
+            }
+
+            const radius = data.guardRadius || 100;
+            selectedGuardRadius = radius;
+            renderRadiusPillsUI();
+
+            const centerLatLng = [data.guardLat, data.guardLng];
+            const distM = Math.round(data.guardDistanceMeters != null
+                ? data.guardDistanceMeters
+                : calcDistanceMeters(data.guardLat, data.guardLng, data.latitude, data.longitude));
+            const breached = Boolean(data.guardBreached) || (distM > radius);
+            const zoneColor = breached ? '#FF1744' : '#00E676';
+
+            if (!geofenceCircle) {
+                geofenceCircle = L.circle(centerLatLng, {
+                    color: zoneColor,
+                    fillColor: zoneColor,
+                    fillOpacity: 0.13,
+                    radius: radius
+                }).addTo(map);
+            } else {
+                geofenceCircle.setLatLng(centerLatLng);
+                geofenceCircle.setRadius(radius);
+                geofenceCircle.setStyle({ color: zoneColor, fillColor: zoneColor });
+            }
+
+            if (!geofenceCenterMarker) {
+                geofenceCenterMarker = L.marker(centerLatLng, { icon: parkingPinIcon, interactive: false }).addTo(map);
+            } else {
+                geofenceCenterMarker.setLatLng(centerLatLng);
+            }
+
+            const activatedAt = data.guardActivatedAt ? ` lúc ${data.guardActivatedAt}` : '';
+            subInfo.style.display = 'block';
+
+            if (breached) {
+                btn.className = 'guard-btn guard-alarm';
+                btn.innerText = `🚨 VƯỢT RÀO (${distM}m / ${radius}m) - Bấm để mở khóa`;
+                subInfo.style.color = '#FF8A80';
+                subInfo.innerText = `⚠️ Khóa${activatedAt} • Xe đang cách tâm bãi đỗ ${distM} m!`;
+
+                alarmText.innerText = `🚨 CẢNH BÁO XE ${data.vehicleId || getVehicleId()}: ĐÃ RỜI BÃI ĐỖ AN TOÀN (Cách ${distM} m / ${radius} m)!`;
+                banner.style.display = 'block';
+
+                if (!wasBreached) {
+                    sirenMutedForCurrentBreach = false;
+                    notifyBreachDesktop(data.vehicleId || getVehicleId(), distM, radius);
+                }
+                startSiren();
+                updateBannerSirenButton();
+            } else {
+                btn.className = 'guard-btn guard-on';
+                btn.innerText = `🔒 Đang Bảo Vệ Xe (${radius}m • An toàn) - Bấm để mở`;
+                subInfo.style.color = '#9AB0C5';
+                subInfo.innerText = `🅿️ Tâm khóa${activatedAt} • Cách tâm: ${distM} m (An toàn)`;
+
+                banner.style.display = 'none';
+                stopSiren();
+                sirenMutedForCurrentBreach = false;
+            }
+
+            wasBreached = breached;
+        }
+
+        // TUA LẠI LỘ TRÌNH
+        function togglePlayback() {
+            if (historyPoints.length < 2) {
+                alert("Chưa có đủ điểm di chuyển để tua lại!");
+                return;
+            }
+            const btn = document.getElementById('btnPlay');
+            if (isPlaybackPlaying) {
+                stopPlayback();
+            } else {
+                isPlaybackPlaying = true;
+                btn.innerText = "⏸️ Dừng Tua";
+                btn.className = "btn-danger";
+                if (playbackIndex >= historyPoints.length - 1) playbackIndex = 0;
+
+                playbackInterval = setInterval(() => {
+                    if (playbackIndex >= historyPoints.length) {
+                        stopPlayback();
+                        return;
+                    }
+                    applyPlaybackStep(playbackIndex);
+                    playbackIndex++;
+                }, 550);
+            }
+        }
+
+        function stopPlayback() {
+            isPlaybackPlaying = false;
+            clearInterval(playbackInterval);
+            const btn = document.getElementById('btnPlay');
+            if (btn) {
+                btn.innerText = "▶️ Tua Lại";
+                btn.className = "btn-success";
+            }
+        }
+
+        function applyPlaybackStep(idx) {
+            const pt = historyPoints[idx];
+            if (!pt) return;
+
+            document.getElementById('playbackSlider').value = idx;
+            document.getElementById('sliderTime').innerText = `${idx + 1}/${historyPoints.length}`;
+
+            if (carMarker) carMarker.setLatLng([pt.latitude, pt.longitude]);
+            map.panTo([pt.latitude, pt.longitude]);
+
+            const speed = parseFloat(pt.speed) || 0;
+            document.getElementById('valSpeedBig').innerText = `${speed.toFixed(1)} km/h`;
+            document.getElementById('valLat').innerText = pt.latitude.toFixed(5);
+            document.getElementById('valLng').innerText = pt.longitude.toFixed(5);
+            document.getElementById('lastUpdated').innerText = `Lúc: ${pt.recordedAt || ''}`;
+        }
+
+        function onSliderMove(val) {
+            stopPlayback();
+            playbackIndex = parseInt(val);
+            applyPlaybackStep(playbackIndex);
+        }
+
+        function clearRouteHistory() {
+            const vId = getVehicleId();
+            if (!confirm(`Xóa sạch toàn bộ vệt bánh xe của ${vId}?`)) return;
+
+            apiFetch(`/history/${encodeURIComponent(vId)}`, { method: 'DELETE' })
+                .then(res => res.text())
+                .then(() => {
+                    historyPoints = [];
+                    if (routePolyline) map.removeLayer(routePolyline);
+                    routePolyline = null;
+                    document.getElementById('valTotalKm').innerText = '0.00 km';
+                    document.getElementById('valMaxSpeed').innerText = '0.0 km/h';
+                    document.getElementById('pointCountLabel').innerText = '0 điểm';
+                    document.getElementById('playbackSlider').max = 0;
+                    document.getElementById('sliderTime').innerText = '0/0';
+                })
+                .catch(err => {
+                    if (err && err.message !== 'UNAUTHORIZED') alert("Lỗi khi xóa vết: " + err);
+                });
+        }
+
+        // Khởi chạy ban đầu
+        renderSirenSettingUI();
+        renderRadiusPillsUI();
+        applyUserHeaderUI();
+        initAuthSession();
+    </script>
+</body>
+
+</html>
