@@ -104,6 +104,11 @@ public class AdminController {
             vm.put("planExpiresAt", v.getPlanExpiresAt() != null ? v.getPlanExpiresAt() : "");
             vm.put("expired", expired);
             vm.put("lastUpdated", v.getLastUpdated() != null ? v.getLastUpdated() : "Chưa có tín hiệu");
+            vm.put("accOn", Boolean.TRUE.equals(v.getAccOn()));
+            vm.put("imei", v.getImei() != null ? v.getImei() : "");
+            vm.put("cameraChannels", v.getCameraChannels() != null ? v.getCameraChannels() : 2);
+            vm.put("streamBaseUrl", v.getStreamBaseUrl() != null ? v.getStreamBaseUrl() : "");
+            vm.put("googleDriveFolderUrl", v.getGoogleDriveFolderUrl() != null ? v.getGoogleDriveFolderUrl() : "");
             vm.put("guardEnabled", Boolean.TRUE.equals(v.getGuardEnabled()));
             vm.put("guardBreached", Boolean.TRUE.equals(v.getGuardBreached()));
             vm.put("maxSpeedAlertKmh", v.getMaxSpeedAlertKmh() != null ? v.getMaxSpeedAlertKmh() : 90);
@@ -246,6 +251,19 @@ public class AdminController {
             v.setPlanExpiresAt(req.getPlanExpiresAt().trim());
         }
         v.setSpeed(0.0);
+        v.setAccOn(false);
+        if (req.getImei() != null && !req.getImei().isBlank()) {
+            v.setImei(req.getImei().trim());
+        }
+        if (req.getCameraChannels() != null) {
+            v.setCameraChannels(Math.max(1, Math.min(4, req.getCameraChannels())));
+        }
+        if (req.getStreamBaseUrl() != null && !req.getStreamBaseUrl().isBlank()) {
+            v.setStreamBaseUrl(req.getStreamBaseUrl().trim());
+        }
+        if (req.getGoogleDriveFolderUrl() != null && !req.getGoogleDriveFolderUrl().isBlank()) {
+            v.setGoogleDriveFolderUrl(req.getGoogleDriveFolderUrl().trim());
+        }
         v.setMaxSpeedAlertKmh(req.getMaxSpeedAlertKmh() != null ? req.getMaxSpeedAlertKmh() : 90);
         v = vehicleRepository.save(v);
 
@@ -292,6 +310,21 @@ public class AdminController {
 
         if (req.getMaxSpeedAlertKmh() != null && req.getMaxSpeedAlertKmh() > 0) {
             v.setMaxSpeedAlertKmh(req.getMaxSpeedAlertKmh());
+        }
+        if (req.getImei() != null) {
+            String cleanImei = req.getImei().trim();
+            v.setImei(cleanImei.isEmpty() ? null : cleanImei);
+        }
+        if (req.getCameraChannels() != null) {
+            v.setCameraChannels(Math.max(1, Math.min(4, req.getCameraChannels())));
+        }
+        if (req.getStreamBaseUrl() != null) {
+            String cleanStream = req.getStreamBaseUrl().trim();
+            v.setStreamBaseUrl(cleanStream.isEmpty() ? null : cleanStream);
+        }
+        if (req.getGoogleDriveFolderUrl() != null) {
+            String cleanDrive = req.getGoogleDriveFolderUrl().trim();
+            v.setGoogleDriveFolderUrl(cleanDrive.isEmpty() ? null : cleanDrive);
         }
 
         v = vehicleRepository.save(v);
@@ -363,6 +396,10 @@ public class AdminController {
         private Integer planMonths;
         private String planExpiresAt;
         private Integer maxSpeedAlertKmh;
+        private String imei;
+        private Integer cameraChannels;
+        private String streamBaseUrl;
+        private String googleDriveFolderUrl;
 
         public String getVehicleId() { return vehicleId; }
         public void setVehicleId(String vehicleId) { this.vehicleId = vehicleId; }
@@ -382,6 +419,14 @@ public class AdminController {
         public void setPlanExpiresAt(String planExpiresAt) { this.planExpiresAt = planExpiresAt; }
         public Integer getMaxSpeedAlertKmh() { return maxSpeedAlertKmh; }
         public void setMaxSpeedAlertKmh(Integer maxSpeedAlertKmh) { this.maxSpeedAlertKmh = maxSpeedAlertKmh; }
+        public String getImei() { return imei; }
+        public void setImei(String imei) { this.imei = imei; }
+        public Integer getCameraChannels() { return cameraChannels; }
+        public void setCameraChannels(Integer cameraChannels) { this.cameraChannels = cameraChannels; }
+        public String getStreamBaseUrl() { return streamBaseUrl; }
+        public void setStreamBaseUrl(String streamBaseUrl) { this.streamBaseUrl = streamBaseUrl; }
+        public String getGoogleDriveFolderUrl() { return googleDriveFolderUrl; }
+        public void setGoogleDriveFolderUrl(String googleDriveFolderUrl) { this.googleDriveFolderUrl = googleDriveFolderUrl; }
     }
 }
 

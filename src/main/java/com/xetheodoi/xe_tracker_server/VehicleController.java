@@ -34,6 +34,9 @@ public class VehicleController {
     @Autowired(required = false)
     private TelegramNotificationService telegramService;
 
+    @Autowired(required = false)
+    private Jt808TcpServer jt808TcpServer;
+
     @Value("${app.apks.dir:D:\\CarTracker\\APKs_Xong}")
     private String apksDir;
 
@@ -106,6 +109,14 @@ public class VehicleController {
         vehicle.setSpeed(speed);
         if (incoming.getBearing() != null) {
             vehicle.setBearing(incoming.getBearing());
+        }
+        if (incoming.getAccOn() != null) {
+            vehicle.setAccOn(incoming.getAccOn());
+        } else if (speed > 2.0) {
+            vehicle.setAccOn(true);
+        }
+        if (incoming.getCameraChannels() != null && incoming.getCameraChannels() >= 1 && incoming.getCameraChannels() <= 4) {
+            vehicle.setCameraChannels(incoming.getCameraChannels());
         }
         vehicle.setLastUpdated(nowStr);
         evaluateGuardState(vehicle);
@@ -182,8 +193,14 @@ public class VehicleController {
                     : LocalDateTime.now().format(FORMATTER);
             vehicle.setLatitude(latestValid.getLatitude());
             vehicle.setLongitude(latestValid.getLongitude());
-            vehicle.setSpeed(latestValid.getSpeed() != null ? Math.max(0.0, latestValid.getSpeed()) : 0.0);
+            double batchSpd = latestValid.getSpeed() != null ? Math.max(0.0, latestValid.getSpeed()) : 0.0;
+            vehicle.setSpeed(batchSpd);
             if (latestValid.getBearing() != null) vehicle.setBearing(latestValid.getBearing());
+            if (latestValid.getAccOn() != null) {
+                vehicle.setAccOn(latestValid.getAccOn());
+            } else if (batchSpd > 2.0) {
+                vehicle.setAccOn(true);
+            }
             vehicle.setLastUpdated(ts);
             evaluateGuardState(vehicle);
             vehicleRepository.save(vehicle);
@@ -482,41 +499,29 @@ public class VehicleController {
 
     // Công thức Haversine tính khoảng cách giữa 2 điểm GPS (km)
     private double calculateDistanceKm(double lat1, double lon1, double lat2, double lon2) {
-        final int R = 6371;
-        double latDistance = Math.toRadians(lat2 - lat1);
-        double lonDistance = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
+        return GeoUtils.calculateDistanceKm(lat1, lon1, lat2, lon2);
     }
 
     private int sanitizeGuardRadius(Integer radius) {
-        if (radius == null || radius <= 0) {
-            return 100;
-        }
-        return Math.max(20, Math.min(5000, radius));
+        return GeoUtils.sanitizeGuardRadius(radius);
     }
 
     void evaluateGuardState(Vehicle vehicle) {
-        boolean enabled = Boolean.TRUE.equals(vehicle.getGuardEnabled());
-        int radius = sanitizeGuardRadius(vehicle.getGuardRadius());
-        vehicle.setGuardEnabled(enabled);
-        vehicle.setGuardRadius(radius);
+        GeoUtils.evaluateGuardState(vehicle);
+    }
 
-        if (enabled && vehicle.getGuardLat() != null && vehicle.getGuardLng() != null
-                && vehicle.getLatitude() != null && vehicle.getLongitude() != null) {
-            double distMeters = calculateDistanceKm(
-                    vehicle.getGuardLat(), vehicle.getGuardLng(),
-                    vehicle.getLatitude(), vehicle.getLongitude()
-            ) * 1000.0;
-            vehicle.setGuardDistanceMeters(Math.round(distMeters * 10.0) / 10.0);
-            vehicle.setGuardBreached(distMeters > radius);
-        } else {
-            vehicle.setGuardDistanceMeters(0.0);
-            vehicle.setGuardBreached(false);
+    @GetMapping("/api/devices/jt808/status")
+    public ResponseEntity<?> getJt808Status(
+            @RequestHeader(value = "Authorization", required = false) String authHeader
+    ) {
+        if (authService != null && authService.authenticateRequest(authHeader).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("status", "error", "message", "Chưa đăng nhập!"));
         }
+        if (jt808TcpServer == null) {
+            return ResponseEntity.ok(Map.of("enabled", false, "listening", false, "port", 0, "activeConnections", 0));
+        }
+        return ResponseEntity.ok(jt808TcpServer.getStatusSnapshot());
     }
 
     private static class VehicleAccessResult {

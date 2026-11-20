@@ -9,4 +9,5 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
     List<Vehicle> findByOwnerIdOrderByIdAsc(Long ownerId);
     List<Vehicle> findAllByOrderByIdAsc();
     Optional<Vehicle> findByActivationCodeIgnoreCase(String activationCode);
+    Optional<Vehicle> findByImeiIgnoreCase(String imei);
 }

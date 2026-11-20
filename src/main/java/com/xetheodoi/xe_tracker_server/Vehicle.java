@@ -26,6 +26,11 @@ public class Vehicle {
     private Double speed;       // vận tốc km/h
     private Double bearing;     // góc hướng di chuyển (0-360 độ)
     private String lastUpdated; // thời gian cập nhật gần nhất
+    private Boolean accOn = false;          // trạng thái khóa điện/nổ máy ACC
+    private String imei;                    // mã thiết bị / terminal ID JT808 (VD: 944526111140)
+    private Integer cameraChannels = 2;     // số mắt camera trên xe (1..4)
+    private String streamBaseUrl;           // link stream gốc (VD: https://media.domain/live/XE001)
+    private String googleDriveFolderUrl;    // thư mục Google Drive lưu clip của chủ xe
 
     // Khóa bãi đỗ chống trộm (đồng bộ qua Server/DB)
     private Boolean guardEnabled = false;
@@ -104,6 +109,21 @@ public class Vehicle {
 
     public Double getBearing() { return bearing; }
     public void setBearing(Double bearing) { this.bearing = bearing; }
+
+    public Boolean getAccOn() { return accOn; }
+    public void setAccOn(Boolean accOn) { this.accOn = accOn; }
+
+    public String getImei() { return imei; }
+    public void setImei(String imei) { this.imei = imei; }
+
+    public Integer getCameraChannels() { return cameraChannels; }
+    public void setCameraChannels(Integer cameraChannels) { this.cameraChannels = cameraChannels; }
+
+    public String getStreamBaseUrl() { return streamBaseUrl; }
+    public void setStreamBaseUrl(String streamBaseUrl) { this.streamBaseUrl = streamBaseUrl; }
+
+    public String getGoogleDriveFolderUrl() { return googleDriveFolderUrl; }
+    public void setGoogleDriveFolderUrl(String googleDriveFolderUrl) { this.googleDriveFolderUrl = googleDriveFolderUrl; }
 
     public Long getLastTelegramAlertEpochMs() { return lastTelegramAlertEpochMs; }
     public void setLastTelegramAlertEpochMs(Long lastTelegramAlertEpochMs) { this.lastTelegramAlertEpochMs = lastTelegramAlertEpochMs; }
