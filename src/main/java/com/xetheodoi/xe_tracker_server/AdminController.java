@@ -27,6 +27,8 @@ public class AdminController {
     private final AppSettingRepository settingRepository;
     private final AuthService authService;
     private final TelegramNotificationService telegramService;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private VideoClipRepository videoClipRepository;
     private final SecureRandom random = new SecureRandom();
 
     public AdminController(
@@ -346,6 +348,9 @@ public class AdminController {
         }
         Vehicle v = opt.get();
         historyRepository.deleteByVehicleId(v.getVehicleId());
+        if (videoClipRepository != null) {
+            videoClipRepository.deleteByVehicleId(v.getVehicleId());
+        }
         vehicleRepository.delete(v);
         return ResponseEntity.ok(Map.of("status", "ok", "message", "Đã xóa xe " + v.getVehicleId()));
     }
