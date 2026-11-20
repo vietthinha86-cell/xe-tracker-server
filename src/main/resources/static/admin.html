@@ -162,6 +162,11 @@
             </div>
         </div>
 
+        <div id="jt808Banner" class="card" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span style="font-size:13px;color:#B8C7D6;">📡 <b>Cổng phần cứng JT808 (Cam 4G không màn hình):</b> <span id="jt808StatusText">Đang kiểm tra...</span></span>
+            <span style="font-size:11.5px;color:#8F9CA8;">Gắn đúng IMEI thiết bị vào xe bên dưới để nhận tọa độ &amp; ACC trực tiếp từ cam qua TCP.</span>
+        </div>
+
         <!-- TELEGRAM BOT HỆ THỐNG -->
         <div class="card">
             <div class="card-title">
@@ -215,6 +220,27 @@
                         <option value="false">Không bắt buộc mã</option>
                     </select>
                 </div>
+                <div>
+                    <label>IMEI / Mã JT808 (Tùy chọn)</label>
+                    <input type="text" id="newVehImei" placeholder="VD: 944526111140">
+                </div>
+                <div>
+                    <label>Số mắt Camera</label>
+                    <select id="newVehChannels">
+                        <option value="1">1 mắt</option>
+                        <option value="2" selected>2 mắt (Trước + Cabin)</option>
+                        <option value="3">3 mắt</option>
+                        <option value="4">4 mắt (MDVR)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Link Stream gốc (HLS/FLV)</label>
+                    <input type="text" id="newVehStreamUrl" placeholder="VD: https://.../live/{ch}.flv">
+                </div>
+                <div>
+                    <label>Thư mục Google Drive</label>
+                    <input type="text" id="newVehDriveUrl" placeholder="Link folder Drive (tùy chọn)">
+                </div>
                 <button class="btn-green" onclick="createVehicle()">➕ Tạo Xe &amp; Sinh Mã</button>
             </div>
 
@@ -222,11 +248,11 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Biển số / Tên</th>
+                            <th>Biển số / Tên / IMEI</th>
                             <th>Chủ sở hữu</th>
                             <th>Mã kích hoạt</th>
                             <th>Hạn sử dụng</th>
-                            <th>Cập nhật cuối</th>
+                            <th>Camera / ACC / Tín hiệu</th>
                             <th>Thao tác nhanh</th>
                         </tr>
                     </thead>
@@ -314,6 +340,23 @@
             document.getElementById('mainContent').style.display = 'flex';
             document.getElementById('btnLogout').style.display = 'inline-flex';
             renderDashboard(overviewData);
+            loadJt808Status();
+        }
+
+        async function loadJt808Status() {
+            const el = document.getElementById('jt808StatusText');
+            if (!el) return;
+            const res = await apiFetch('/api/devices/jt808/status');
+            if (!res.ok) {
+                el.innerText = 'Không lấy được trạng thái';
+                return;
+            }
+            const d = res.data;
+            if (d.listening) {
+                el.innerHTML = `<span class="badge badge-ok">Đang mở cổng ${d.port} • ${d.activeConnections || 0} cam đang nối</span>`;
+            } else {
+                el.innerHTML = `<span class="badge badge-warn">Đang tắt</span>`;
+            }
         }
 
         function showLogin(msg) {
@@ -388,11 +431,16 @@
                     ? '<span style="font-size:11px;color:#00E676;">🔒 Bắt buộc</span>'
                     : '<span style="font-size:11px;color:#8F9CA8;">🔓 Mở</span>';
 
+                const accBadge = v.accOn
+                    ? '<span class="badge badge-ok" style="font-size:10px;">ACC: Bật</span>'
+                    : '<span class="badge" style="font-size:10px;background:#222D39;color:#8F9CA8;">ACC: Tắt</span>';
+
                 return `
                     <tr>
                         <td>
                             <div style="font-weight:800; color:#fff;">${escapeHtml(v.vehicleId)}</div>
                             <div style="font-size:11.5px; color:#8F9CA8;">${escapeHtml(v.vehicleName)}</div>
+                            ${v.imei ? `<div style="font-size:10.5px; color:#66B8FF;">IMEI: ${escapeHtml(v.imei)}</div>` : ''}
                         </td>
                         <td>${escapeHtml(v.ownerLabel)}</td>
                         <td>
@@ -400,10 +448,14 @@
                             <div style="margin-top:4px;">${reqBadge}</div>
                         </td>
                         <td>${expBadge}</td>
-                        <td style="font-size:11.5px; color:#A0B0C0;">${escapeHtml(v.lastUpdated)}</td>
+                        <td style="font-size:11.5px; color:#A0B0C0;">
+                            <div>📹 ${v.cameraChannels || 2} mắt • ${accBadge}</div>
+                            <div style="margin-top:4px;">${escapeHtml(v.lastUpdated)}</div>
+                        </td>
                         <td>
                             <div style="display:flex; gap:5px; flex-wrap:wrap;">
                                 <button class="btn-sm btn-green" onclick="copyHandover('${escapeAttr(v.vehicleId)}', '${escapeAttr(v.activationCode)}', '${escapeAttr(v.ownerLabel)}')">📋 Copy gửi khách</button>
+                                <button class="btn-sm" onclick="editVehicleCam(${v.id})">📹 Cam/IMEI</button>
                                 <button class="btn-sm" onclick="extendVehicle(${v.id}, 1)">+1 Tháng</button>
                                 <button class="btn-sm" onclick="extendVehicle(${v.id}, 12)">+1 Năm</button>
                                 <button class="btn-sm btn-gray" onclick="toggleRequireCode(${v.id}, ${!v.requireActivationCode})">${v.requireActivationCode ? 'Tắt kiểm mã' : 'Bật kiểm mã'}</button>
@@ -454,15 +506,46 @@
             const ownerId = parseInt(document.getElementById('newVehOwner').value, 10);
             const planMonths = parseInt(document.getElementById('newVehPlanMonths').value, 10);
             const requireActivationCode = document.getElementById('newVehRequireCode').value === 'true';
+            const imei = document.getElementById('newVehImei').value.trim();
+            const cameraChannels = parseInt(document.getElementById('newVehChannels').value, 10);
+            const streamBaseUrl = document.getElementById('newVehStreamUrl').value.trim();
+            const googleDriveFolderUrl = document.getElementById('newVehDriveUrl').value.trim();
 
             const res = await apiFetch('/api/admin/vehicles', {
                 method: 'POST',
-                body: JSON.stringify({ vehicleId, vehicleName, ownerId, planMonths, requireActivationCode })
+                body: JSON.stringify({
+                    vehicleId, vehicleName, ownerId, planMonths, requireActivationCode,
+                    imei, cameraChannels, streamBaseUrl, googleDriveFolderUrl
+                })
             });
             if (!res.ok) return alert(res.data.message || 'Lỗi tạo xe!');
             alert(`✅ Đã tạo xe ${res.data.vehicle.vehicleId}\nMã kích hoạt: ${res.data.vehicle.activationCode}`);
             document.getElementById('newVehId').value = '';
             document.getElementById('newVehName').value = '';
+            document.getElementById('newVehImei').value = '';
+            document.getElementById('newVehStreamUrl').value = '';
+            document.getElementById('newVehDriveUrl').value = '';
+            loadOverview();
+        }
+
+        async function editVehicleCam(id) {
+            const v = (overviewData && overviewData.vehicles || []).find(x => x.id === id);
+            if (!v) return;
+            const imei = prompt(`IMEI / Mã JT808 cho xe ${v.vehicleId} (bỏ trống để xóa):`, v.imei || '');
+            if (imei === null) return;
+            const chStr = prompt(`Số mắt camera (1 - 4):`, String(v.cameraChannels || 2));
+            if (chStr === null) return;
+            const streamBaseUrl = prompt(`Link Stream gốc (HLS/FLV, hỗ trợ {ch} cho kênh 1..4):`, v.streamBaseUrl || '');
+            if (streamBaseUrl === null) return;
+            const googleDriveFolderUrl = prompt(`Link thư mục Google Drive của khách:`, v.googleDriveFolderUrl || '');
+            if (googleDriveFolderUrl === null) return;
+
+            const cameraChannels = parseInt(chStr, 10) || 2;
+            const res = await apiFetch(`/api/admin/vehicles/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ imei, cameraChannels, streamBaseUrl, googleDriveFolderUrl })
+            });
+            if (!res.ok) return alert(res.data.message || 'Lỗi cập nhật cấu hình cam');
             loadOverview();
         }
 
