@@ -865,8 +865,9 @@
                 <div class="kpi-box"><div class="kpi-t">Ngoại tuyến</div><div id="dashOffline" class="kpi-v" style="color:#FFA726;">0</div></div>
                 <div class="kpi-box"><div class="kpi-t">Đang cảnh báo</div><div id="dashAlert" class="kpi-v" style="color:#FF5252;">0</div></div>
                 <div class="kpi-box"><div class="kpi-t">Đang nổ máy (ACC)</div><div id="dashAcc" class="kpi-v" style="color:#38BDF8;">0</div></div>
+                <div class="kpi-box"><div class="kpi-t">Đang cho mượn</div><div id="dashLoans" class="kpi-v" style="color:#FBBF24;">0</div></div>
                 <div class="kpi-box"><div class="kpi-t">Quãng đường hôm nay</div><div id="dashKm" class="kpi-v" style="color:#38BDF8;">0 km</div></div>
-                <div class="kpi-box"><div class="kpi-t">Clip Drive hôm nay</div><div id="dashVideos" class="kpi-v" style="color:#00E676;">0</div></div>
+                <div class="kpi-box"><div class="kpi-t">Clip hôm nay</div><div id="dashVideos" class="kpi-v" style="color:#00E676;">0</div></div>
             </div>
             <div class="card">
                 <div class="card-label">Danh sách xe trực tiếp</div>
@@ -875,6 +876,7 @@
                         <thead>
                             <tr>
                                 <th>Xe</th>
+                                <th>Người đang mượn</th>
                                 <th>Trạng thái</th>
                                 <th>ACC</th>
                                 <th>Tốc độ</th>
@@ -931,6 +933,18 @@
                 </div>
                 <div id="lastUpdated" class="card-sub">Cập nhật: --:--:--</div>
                 <div id="addressText" class="address-line">📍 Đang dò tên đường...</div>
+            </div>
+
+            <!-- Thẻ quản lý Người đang mượn xe (Chủ xe cho mượn / thuê tự lái) -->
+            <div class="card" id="sidebarLoanCard" style="border-color:#2D4159;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+                    <span class="card-label" style="margin:0;color:#FBBF24;">🔑 Trạng thái cho mượn xe</span>
+                    <span id="sidebarLoanBadge" class="plan-pill" style="background:#1B2735;color:#9EB0C2;border-color:#324457;">Ở nhà</span>
+                </div>
+                <div id="sidebarLoanInfo" class="card-sub" style="margin-top:6px;color:#DCE7F2;">Xe chưa ghi nhận người mượn.</div>
+                <div id="sidebarLoanActions" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                    <button style="flex:1;padding:8px;font-size:12px;" onclick="openLoanModal()">🔑 Giao xe (Tạo lượt mượn)</button>
+                </div>
             </div>
 
             <!-- Dẫn đường tới xe (Trên bản đồ OSRM + Google Maps + Apple Maps) -->
@@ -1040,6 +1054,7 @@
             <div id="bottomDetailBar">
                 <div class="detail-cells">
                     <div class="detail-cell"><span>Biển số / Mã</span><b id="btmPlate">XE001</b></div>
+                    <div class="detail-cell"><span>Người đang mượn</span><b id="btmBorrower" style="color:#FBBF24;">Ở nhà</b></div>
                     <div class="detail-cell"><span>Thời gian định vị</span><b id="btmTime">--</b></div>
                     <div class="detail-cell"><span>Tốc độ</span><b id="btmSpeed">0.0 km/h</b></div>
                     <div class="detail-cell"><span>ACC</span><b id="btmAcc">--</b></div>
@@ -1055,32 +1070,54 @@
         </div>
     </div>
 
-    <!-- TAB 3: VIDEO TRỰC TIẾP 1-4 MẮT & GOOGLE DRIVE -->
+    <!-- TAB 3: VIDEO TRỰC TIẾP 1-4 MẮT & CHẾ ĐỘ TIẾT KIỆM 4G SIM -->
     <div id="viewVideo" class="view-page">
         <div class="page-container">
             <div class="video-toolbar">
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                    <strong style="font-size:15px;">📹 Video trực tiếp &amp; Lưu trữ Google Drive</strong>
+                    <strong style="font-size:15px;">📹 Quan sát người lái &amp; Video (Tiết kiệm 4G SIM)</strong>
                     <select id="videoVehicleSelect" onchange="onVideoVehicleChange(this.value)" style="font-weight:700;"></select>
                     <button class="btn-secondary" onclick="setVideoGridLayout(1)" id="btnGrid1">1 mắt</button>
                     <button class="btn-secondary" onclick="setVideoGridLayout(2)" id="btnGrid2">2 mắt</button>
                     <button class="btn-secondary active" onclick="setVideoGridLayout(4)" id="btnGrid4" style="border-color:#0088FF;color:#38BDF8;">4 mắt</button>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                    <button id="btnToggleLiveSaver" class="btn-secondary" onclick="toggleOnDemandLive()" style="border-color:#00E676;color:#00E676;">▶️ Bật Live (Tự tắt sau 2p)</button>
                     <a id="btnOpenDriveFolder" href="#" target="_blank" class="hdr-icon-btn" style="display:none;color:#00E676;border-color:#00E676;">📂 Mở Google Drive</a>
-                    <button class="btn-secondary" onclick="openCameraConfigModal()">⚙️ Cấu hình Cam &amp; Drive</button>
-                    <button class="btn-success" onclick="openAddClipModal()">➕ Gắn Clip Google Drive</button>
+                    <button class="btn-secondary" onclick="openCameraConfigModal()">⚙️ Cấu hình Cam</button>
+                    <button class="btn-success" onclick="openUploadClipModal()">📤 Đẩy clip / Test Webcam</button>
+                    <button class="btn-secondary" onclick="openAddClipModal()">🔗 Gắn Link Drive</button>
+                </div>
+            </div>
+
+            <!-- Thanh Chế độ tiết kiệm 4G SIM + Yêu cầu đẩy clip ngắn / chụp ảnh nhanh -->
+            <div class="card" style="display:flex;flex-direction:column;gap:10px;border-color:#1E4E4A;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span class="plan-pill" style="background:rgba(0,230,118,0.14);color:#00E676;border-color:rgba(0,230,118,0.35);">⚡ Chế độ tiết kiệm 4G SIM &amp; Dung lượng</span>
+                        <span id="videoBorrowerChip" class="plan-pill" style="background:#1B2735;color:#FBBF24;border-color:#324457;">Xe đang ở nhà</span>
+                        <span id="videoStorageChip" style="font-size:12px;color:#9FB0C2;">💾 Đang tải dung lượng...</span>
+                        <span id="liveCountdownText" style="font-size:12px;color:#38BDF8;font-weight:700;"></span>
+                    </div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button style="padding:7px 11px;font-size:12px;" onclick="sendCaptureRequest(2, 'CLIP', 15)">🎬 Đẩy clip 15s Cabin (~1.5MB)</button>
+                        <button class="btn-secondary" style="padding:7px 11px;font-size:12px;border-color:#38BDF8;color:#38BDF8;" onclick="sendCaptureRequest(2, 'SNAPSHOT', 1)">📸 Chụp ảnh Cabin (~40KB)</button>
+                        <button class="btn-secondary" style="padding:7px 11px;font-size:12px;" onclick="sendCaptureRequest(1, 'CLIP', 15)">🚘 Đẩy clip 15s Phía trước</button>
+                    </div>
+                </div>
+                <div id="videoCommandBar" style="font-size:11.5px;color:#9FB0C2;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    Chưa có lệnh yêu cầu đẩy clip nào gần đây. Khi người mượn nổ máy (ACC) hoặc vượt tốc độ, hệ thống sẽ tự xếp lệnh đẩy clip ngắn 15s.
                 </div>
             </div>
 
             <div id="videoGrid" class="video-grid layout-4"></div>
 
-            <!-- Danh sách Clip lịch sử trên Google Drive -->
+            <!-- Danh sách Clip sự kiện & Google Drive -->
             <div class="card">
                 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
                     <div>
-                        <div class="card-label" style="margin:0;">Kho video hành trình / cabin đã lưu (Google Drive &amp; Sự kiện)</div>
-                        <div style="font-size:11.5px;color:#8F9CA8;">Chọn ngày, kênh camera hoặc loại sự kiện để phát lại ngay trên web.</div>
+                        <div class="card-label" style="margin:0;">Kho video &amp; ảnh chụp người lái (Sự kiện tiết kiệm 4G + Google Drive)</div>
+                        <div style="font-size:11.5px;color:#8F9CA8;">Mọi clip đẩy lên tự động gắn tên người đang mượn, thời gian &amp; GPS. Tự xóa clip cục bộ cũ khi vượt hạn mức.</div>
                     </div>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
                         <input type="date" id="videoFilterDate" onchange="loadVideoWorkspace()">
@@ -1093,10 +1130,12 @@
                         </select>
                         <select id="videoFilterTrigger" onchange="loadVideoWorkspace()">
                             <option value="">Tất cả sự kiện</option>
+                            <option value="OWNER_REQUEST">Chủ xe yêu cầu (OWNER_REQUEST)</option>
+                            <option value="ACC_ON">Vừa nổ máy (ACC_ON)</option>
+                            <option value="GEOFENCE_BREACH">Vượt vùng khóa (GEOFENCE_BREACH)</option>
                             <option value="GEOFENCE">Chống trộm (GEOFENCE)</option>
                             <option value="OVERSPEED">Quá tốc độ (OVERSPEED)</option>
                             <option value="ACCIDENT">Va chạm (ACCIDENT)</option>
-                            <option value="TRIP">Chuyến đi (TRIP)</option>
                             <option value="MANUAL">Thủ công (MANUAL)</option>
                         </select>
                         <button class="btn-secondary" onclick="resetVideoFilters()">Xóa lọc</button>
@@ -1107,11 +1146,11 @@
                         <thead>
                             <tr>
                                 <th>Thời gian</th>
+                                <th>Người lái</th>
                                 <th>Kênh</th>
                                 <th>Tiêu đề</th>
                                 <th>Sự kiện</th>
-                                <th>Thời lượng</th>
-                                <th>Lưu trữ</th>
+                                <th>Dung lượng</th>
                                 <th>Phát lại</th>
                             </tr>
                         </thead>
@@ -1149,6 +1188,37 @@
                     <p style="font-size:11.5px;color:#8F9CA8;">Gắn đúng IMEI thiết bị (VD: 944526111140) vào xe trong trang quản trị và trỏ IP/Domain về cổng JT808 TCP của server.</p>
                 </div>
             </div>
+
+            <!-- Sổ theo dõi các lượt cho mượn / giao xe -->
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                    <div>
+                        <div class="card-label" style="margin:0;color:#FBBF24;">🔑 Sổ quản lý Lượt cho mượn / Giao xe tự lái</div>
+                        <div style="font-size:11.5px;color:#8F9CA8;">Mọi cảnh báo Telegram &amp; clip ngắn đẩy lên đều tự động gắn vào đúng người đang mượn.</div>
+                    </div>
+                    <div style="display:flex;gap:6px;">
+                        <button class="btn-secondary" onclick="loadLoansData()">🔄 Làm mới</button>
+                        <button class="btn-success" onclick="openLoanModal()">➕ Giao xe mới</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Xe</th>
+                                <th>Người mượn</th>
+                                <th>SĐT</th>
+                                <th>Giao lúc</th>
+                                <th>Hẹn trả / Đã trả</th>
+                                <th>Tự đẩy clip</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manageLoansBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1171,13 +1241,14 @@
                             <tr>
                                 <th>Biển số</th>
                                 <th>Tên xe</th>
+                                <th>Người đang mượn</th>
                                 <th>Trạng thái</th>
                                 <th>ACC</th>
                                 <th>Tốc độ hiện tại</th>
                                 <th>Quãng đường (km)</th>
                                 <th>Tốc độ tối đa</th>
                                 <th>Điểm GPS</th>
-                                <th>Video Drive</th>
+                                <th>Video</th>
                                 <th>Cập nhật cuối</th>
                             </tr>
                         </thead>
@@ -1329,7 +1400,102 @@
         </div>
     </div>
 
-    <!-- MODAL PHÁT VIDEO GOOGLE DRIVE / MP4 -->
+    <!-- MODAL GIAO XE / TẠO LƯỢT CHO MƯỢN -->
+    <div id="loanModal" class="modal-overlay" onclick="if(event.target===this) closeModal('loanModal')">
+        <div class="modal-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong style="font-size:16px;">🔑 Giao xe / Tạo lượt cho mượn</strong>
+                <button class="btn-secondary" style="padding:4px 9px;" onclick="closeModal('loanModal')">✕</button>
+            </div>
+            <div id="loanMsgBox" class="msg-box"></div>
+            <div class="form-field">
+                <label>Chọn xe giao</label>
+                <select id="loanVehicleSelect"></select>
+            </div>
+            <div class="form-field">
+                <label>Tên người mượn *</label>
+                <input type="text" id="loanBorrowerName" placeholder="VD: Nguyễn Văn B">
+            </div>
+            <div class="form-field">
+                <label>Số điện thoại người mượn</label>
+                <input type="text" id="loanBorrowerPhone" placeholder="0909xxxxxx">
+            </div>
+            <div class="form-field">
+                <label>Dự kiến trả xe</label>
+                <input type="text" id="loanExpectedReturn" placeholder="VD: 22/11 18:00">
+            </div>
+            <div class="form-field">
+                <label>Ngưỡng cảnh báo tốc độ cho lượt này (km/h)</label>
+                <input type="number" id="loanMaxSpeed" value="80" min="30" max="180">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;background:#0E151D;padding:9px 11px;border-radius:9px;border:1px solid #243344;font-size:12px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" id="loanAutoAcc" checked style="width:auto;"> Tự đẩy clip 15s (Cabin) khi người mượn nổ máy (ACC)
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" id="loanAutoAlert" checked style="width:auto;"> Tự đẩy clip 15s khi vượt tốc độ / rời vùng khóa
+                </label>
+            </div>
+            <div class="form-field">
+                <label>Ghi chú (CCCD, mục đích mượn...)</label>
+                <input type="text" id="loanBorrowerNote" placeholder="VD: Đi công tác Biên Hòa">
+            </div>
+            <button onclick="submitStartLoan()" class="btn-success" style="padding:11px;">🔑 Xác nhận giao xe</button>
+        </div>
+    </div>
+
+    <!-- MODAL ĐẨY CLIP TRỰC TIẾP / TEST WEBCAM TIẾT KIỆM 4G -->
+    <div id="uploadClipModal" class="modal-overlay" onclick="if(event.target===this) closeUploadClipModal()">
+        <div class="modal-card" style="max-width:500px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong style="font-size:16px;">📤 Đẩy clip ngắn / Test Webcam (Tiết kiệm 4G)</strong>
+                <button class="btn-secondary" style="padding:4px 9px;" onclick="closeUploadClipModal()">✕</button>
+            </div>
+            <div style="font-size:12px;color:#9FB0C2;">Chọn file ngắn (&le; 15MB) hoặc quay thử trực tiếp từ Webcam máy tính/điện thoại (nén nhẹ 360p) để test luồng đẩy clip &amp; gắn tên người mượn.</div>
+            <div id="uploadClipMsg" class="msg-box"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div class="form-field">
+                    <label>Mắt camera</label>
+                    <select id="upClipChannel">
+                        <option value="2" selected>Kênh 2 • Trong Cabin</option>
+                        <option value="1">Kênh 1 • Phía trước</option>
+                        <option value="3">Kênh 3 • Hông trái / Sau</option>
+                        <option value="4">Kênh 4 • Hông phải</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label>Loại sự kiện</label>
+                    <select id="upClipTrigger">
+                        <option value="OWNER_REQUEST">Chủ xe yêu cầu</option>
+                        <option value="ACC_ON">Vừa nổ máy (ACC)</option>
+                        <option value="OVERSPEED">Quá tốc độ</option>
+                        <option value="GEOFENCE_BREACH">Vượt vùng khóa</option>
+                        <option value="MANUAL">Thủ công</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-field">
+                <label>Tiêu đề (Tùy chọn)</label>
+                <input type="text" id="upClipTitle" placeholder="VD: Kiểm tra khoang lái 18h30">
+            </div>
+            <div class="form-field">
+                <label>Cách 1: Chọn file Video (.mp4/.webm) hoặc Ảnh (.jpg/.png)</label>
+                <input type="file" id="upClipFile" accept="video/mp4,video/webm,image/jpeg,image/png,image/webp">
+            </div>
+            <button onclick="submitLocalFileUpload()" style="padding:10px;">⬆️ Tải file đã chọn lên xe</button>
+
+            <div style="border-top:1px solid #243344;padding-top:10px;display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:11px;color:#38BDF8;font-weight:700;">CÁCH 2: TEST TRỰC TIẾP BẰNG WEBCAM MÁY TÍNH / ĐIỆN THOẠI</div>
+                <video id="webcamPreview" autoplay muted playsinline style="display:none;width:100%;max-height:200px;background:#000;border-radius:8px;"></video>
+                <div style="display:flex;gap:8px;">
+                    <button id="btnRecWebcam5s" class="btn-success" style="flex:1;padding:9px;font-size:12.5px;" onclick="recordAndUploadWebcam(5)">🎥 Quay 5s &amp; Đẩy lên</button>
+                    <button id="btnSnapWebcam" class="btn-secondary" style="flex:1;padding:9px;font-size:12.5px;border-color:#38BDF8;color:#38BDF8;" onclick="snapshotAndUploadWebcam()">📸 Chụp ảnh &amp; Đẩy lên</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PHÁT VIDEO GOOGLE DRIVE / MP4 / ẢNH CHỤP -->
     <div id="playerModal" class="modal-overlay" onclick="if(event.target===this) closePlayerModal()">
         <div class="modal-card" style="max-width:760px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -1366,7 +1532,14 @@
         let activeMainTab = 'monitor';
 
         let allVehiclesCache = [];
+        let activeLoansByVehicle = {};
+        let allLoansCache = [];
         let fleetFilterMode = 'all';
+
+        let liveStreamArmed = false;
+        let liveAutoStopTimer = null;
+        let liveCountdownSeconds = 0;
+        let webcamStream = null;
 
         let carMarker = null;
         let lastCarHasBearing = null;
@@ -1437,11 +1610,13 @@
         function startPolling() {
             stopPolling();
             fetchVehicleList();
+            loadLoansData();
             fetchRealtimeLocation();
             fetchHistory();
             pollTimers.push(setInterval(fetchRealtimeLocation, 2500));
             pollTimers.push(setInterval(fetchHistory, 5000));
             pollTimers.push(setInterval(fetchVehicleList, 10000));
+            pollTimers.push(setInterval(loadLoansData, 15000));
         }
 
         async function apiFetch(url, options = {}) {
@@ -1598,13 +1773,14 @@
                 } else if (tab === 'manage') {
                     document.getElementById('viewManage').classList.add('active');
                     loadManageJt808Info();
+                    loadLoansData();
                 } else if (tab === 'reports') {
                     document.getElementById('viewReports').classList.add('active');
                     loadReportsTable();
                 }
             }
             if (tab !== 'video') {
-                destroyLivePlayers();
+                stopOnDemandLive(false);
             }
         }
 
@@ -1688,13 +1864,15 @@
                 const safeId = escapeHtml(v.vehicleId);
                 const label = v.vehicleName && v.vehicleName !== v.vehicleId ? `${escapeHtml(v.vehicleName)} (${safeId})` : safeId;
                 const spd = (parseFloat(v.speed) || 0).toFixed(1);
+                const loan = activeLoansByVehicle[v.vehicleId];
+                const loanTag = loan ? ` • 👤 ${escapeHtml(loan.borrowerName)}` : '';
                 return `
                     <div class="fleet-item ${v.vehicleId === current ? 'active' : ''}" onclick="switchVehicle('${safeId}')">
                         <div style="display:flex;align-items:center;gap:6px;min-width:0;">
                             <span style="color:${dotColor};font-size:11px;">●</span>
                             <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                                 <b style="color:#fff;">${label}</b>
-                                <div style="font-size:10px;color:#8F9CA8;">ACC: ${v.accOn ? 'Bật' : 'Tắt'} • 📹 ${v.cameraChannels || 2} mắt</div>
+                                <div style="font-size:10px;color:#8F9CA8;">ACC: ${v.accOn ? 'Bật' : 'Tắt'} • 📹 ${v.cameraChannels || 2} mắt<span style="color:#FBBF24;">${loanTag}</span></div>
                             </div>
                         </div>
                         <span style="font-weight:700;color:#38BDF8;font-size:11.5px;flex-shrink:0;">${spd} km/h</span>
@@ -1720,6 +1898,7 @@
             document.getElementById('addressText').innerText = '📍 Đang dò tên đường...';
             applyServerGuardState(null);
             renderFleetSidebarList();
+            renderSidebarLoanCard();
             fetchRealtimeLocation();
             fetchHistory();
         }
@@ -2385,7 +2564,148 @@
             wasBreached = breached;
         }
 
-        /* ======================== DASHBOARD, VIDEO 4-CH & GOOGLE DRIVE, MANAGE, REPORTS ======================== */
+        /* ======================== QUẢN LÝ LƯỢT CHO MƯỢN XE ======================== */
+        async function loadLoansData() {
+            if (!authToken) return;
+            try {
+                const res = await apiFetch('/api/loans');
+                const data = await res.json();
+                if (!res.ok) return;
+                allLoansCache = data.loans || [];
+                activeLoansByVehicle = data.activeByVehicle || {};
+                renderFleetSidebarList();
+                renderSidebarLoanCard();
+                renderManageLoansTable();
+            } catch (_) {}
+        }
+
+        function renderSidebarLoanCard() {
+            const vId = getVehicleId();
+            const loan = activeLoansByVehicle[vId];
+            const badge = document.getElementById('sidebarLoanBadge');
+            const info = document.getElementById('sidebarLoanInfo');
+            const actions = document.getElementById('sidebarLoanActions');
+            const btmBorrower = document.getElementById('btmBorrower');
+            if (!badge || !info || !actions) return;
+
+            if (loan) {
+                badge.innerText = 'Đang cho mượn';
+                badge.style.background = 'rgba(251,191,36,0.16)';
+                badge.style.color = '#FBBF24';
+                badge.style.borderColor = 'rgba(251,191,36,0.45)';
+                const phonePart = loan.borrowerPhone ? ` • 📞 ${escapeHtml(loan.borrowerPhone)}` : '';
+                const expPart = loan.expectedReturnAt ? `<br>⏰ Hẹn trả: <b>${escapeHtml(loan.expectedReturnAt)}</b>` : '';
+                const notePart = loan.borrowerNote ? `<br>📝 ${escapeHtml(loan.borrowerNote)}` : '';
+                info.innerHTML = `👤 <b>${escapeHtml(loan.borrowerName)}</b>${phonePart}<br>🕒 Giao lúc: ${escapeHtml(loan.startedAt || '--')}${expPart}${notePart}`;
+                actions.innerHTML = `
+                    <button class="btn-secondary" style="flex:1;padding:7px;font-size:11.5px;border-color:#38BDF8;color:#38BDF8;" onclick="sendCaptureRequest(2, 'CLIP', 15)">🎬 Đẩy clip 15s</button>
+                    <button class="btn-success" style="flex:1;padding:7px;font-size:11.5px;" onclick="confirmReturnLoan(${loan.id})">✅ Đã trả xe</button>
+                `;
+                if (btmBorrower) {
+                    btmBorrower.innerText = loan.borrowerName;
+                    btmBorrower.style.color = '#FBBF24';
+                }
+            } else {
+                badge.innerText = 'Ở nhà';
+                badge.style.background = 'rgba(0,230,118,0.14)';
+                badge.style.color = '#00E676';
+                badge.style.borderColor = 'rgba(0,230,118,0.35)';
+                info.innerText = 'Xe đang ở nhà / Chưa ghi nhận người mượn.';
+                actions.innerHTML = `<button style="flex:1;padding:8px;font-size:12px;" onclick="openLoanModal()">🔑 Giao xe (Tạo lượt mượn)</button>`;
+                if (btmBorrower) {
+                    btmBorrower.innerText = 'Ở nhà';
+                    btmBorrower.style.color = '#00E676';
+                }
+            }
+        }
+
+        function renderManageLoansTable() {
+            const tbody = document.getElementById('manageLoansBody');
+            if (!tbody) return;
+            tbody.innerHTML = (allLoansCache || []).map(l => {
+                const isActive = l.status === 'ACTIVE';
+                const autoTxt = `${l.autoClipOnAccOn ? 'ACC' : ''}${l.autoClipOnAccOn && l.autoClipOnAlert ? ' + ' : ''}${l.autoClipOnAlert ? 'Cảnh báo' : ''}` || 'Tắt';
+                return `
+                    <tr>
+                        <td><b>${escapeHtml(l.vehicleId)}</b></td>
+                        <td><b>${escapeHtml(l.borrowerName)}</b>${l.borrowerNote ? `<div style="font-size:11px;color:#8F9CA8;">${escapeHtml(l.borrowerNote)}</div>` : ''}</td>
+                        <td>${escapeHtml(l.borrowerPhone || '--')}</td>
+                        <td style="font-size:11.5px;">${escapeHtml(l.startedAt || '--')}</td>
+                        <td style="font-size:11.5px;">${isActive ? ('Hẹn: ' + escapeHtml(l.expectedReturnAt || '--')) : ('Trả: ' + escapeHtml(l.returnedAt || '--'))}</td>
+                        <td style="font-size:11.5px;color:#38BDF8;">${autoTxt}</td>
+                        <td>${isActive ? '<span class="plan-pill" style="background:rgba(251,191,36,0.16);color:#FBBF24;border-color:rgba(251,191,36,0.45);">Đang mượn</span>' : '<span class="plan-pill">Đã trả</span>'}</td>
+                        <td>
+                            ${isActive ? `<button class="btn-success" style="padding:5px 9px;font-size:11.5px;" onclick="confirmReturnLoan(${l.id})">✅ Trả xe</button>` : '<span style="color:#8F9CA8;font-size:11px;">Hoàn tất</span>'}
+                        </td>
+                    </tr>
+                `;
+            }).join('') || '<tr><td colspan="8" style="text-align:center;color:#8F9CA8;">Chưa có lịch sử giao xe nào. Bấm "➕ Giao xe mới" để bắt đầu theo dõi người mượn!</td></tr>';
+        }
+
+        function openLoanModal() {
+            const sel = document.getElementById('loanVehicleSelect');
+            const cur = getVehicleId();
+            const list = allVehiclesCache.length > 0 ? allVehiclesCache : [{ vehicleId: cur, vehicleName: cur }];
+            sel.innerHTML = list.map(v => `<option value="${escapeHtml(v.vehicleId)}" ${v.vehicleId === cur ? 'selected' : ''}>🚗 ${escapeHtml(v.vehicleName || v.vehicleId)} (${escapeHtml(v.vehicleId)})</option>`).join('');
+            document.getElementById('loanBorrowerName').value = '';
+            document.getElementById('loanBorrowerPhone').value = '';
+            document.getElementById('loanExpectedReturn').value = '';
+            document.getElementById('loanBorrowerNote').value = '';
+            document.getElementById('loanMaxSpeed').value = (currentVehicleData && currentVehicleData.maxSpeedAlertKmh) ? currentVehicleData.maxSpeedAlertKmh : 80;
+            document.getElementById('loanAutoAcc').checked = true;
+            document.getElementById('loanAutoAlert').checked = true;
+            document.getElementById('loanMsgBox').style.display = 'none';
+            document.getElementById('loanModal').style.display = 'flex';
+        }
+
+        async function submitStartLoan() {
+            const payload = {
+                vehicleId: document.getElementById('loanVehicleSelect').value,
+                borrowerName: document.getElementById('loanBorrowerName').value.trim(),
+                borrowerPhone: document.getElementById('loanBorrowerPhone').value.trim(),
+                expectedReturnAt: document.getElementById('loanExpectedReturn').value.trim(),
+                maxSpeedAlertKmh: parseInt(document.getElementById('loanMaxSpeed').value, 10) || 80,
+                autoClipOnAccOn: document.getElementById('loanAutoAcc').checked,
+                autoClipOnAlert: document.getElementById('loanAutoAlert').checked,
+                borrowerNote: document.getElementById('loanBorrowerNote').value.trim()
+            };
+            if (!payload.borrowerName) return showModalMsg('loanMsgBox', 'Vui lòng nhập tên người mượn xe.', false);
+            try {
+                const res = await apiFetch('/api/loans', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const d = await res.json();
+                if (!res.ok) return showModalMsg('loanMsgBox', d.message || 'Lỗi tạo lượt mượn!', false);
+                showModalMsg('loanMsgBox', d.message || 'Đã giao xe!', true);
+                setTimeout(() => {
+                    closeModal('loanModal');
+                    loadLoansData();
+                    if (activeMainTab === 'video') loadVideoWorkspace();
+                    if (activeMainTab === 'dashboard') loadDashboardSummary();
+                }, 450);
+            } catch (_) {}
+        }
+
+        async function confirmReturnLoan(loanId) {
+            const returnNote = prompt('Ghi chú khi nhận lại xe (có thể để trống):', 'Xe nguyên vẹn');
+            if (returnNote === null) return;
+            try {
+                const res = await apiFetch(`/api/loans/${loanId}/return`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ returnNote })
+                });
+                const d = await res.json();
+                if (!res.ok) return alert(d.message || 'Không thể xác nhận trả xe.');
+                loadLoansData();
+                if (activeMainTab === 'video') loadVideoWorkspace();
+                if (activeMainTab === 'dashboard') loadDashboardSummary();
+            } catch (_) {}
+        }
+
+        /* ======================== DASHBOARD, VIDEO 4-CH TIẾT KIỆM 4G, MANAGE, REPORTS ======================== */
         async function loadDashboardSummary() {
             try {
                 const res = await apiFetch('/api/dashboard/summary');
@@ -2396,13 +2716,20 @@
                 document.getElementById('dashOffline').innerText = d.offlineCount ?? 0;
                 document.getElementById('dashAlert').innerText = d.alertCount ?? 0;
                 document.getElementById('dashAcc').innerText = d.accOnCount ?? 0;
+                const dashLoansEl = document.getElementById('dashLoans');
+                if (dashLoansEl) dashLoansEl.innerText = d.activeLoanCount ?? 0;
                 document.getElementById('dashKm').innerText = `${d.todayKm ?? 0} km`;
                 document.getElementById('dashVideos').innerText = d.todayVideos ?? 0;
 
                 const body = document.getElementById('dashFleetBody');
-                body.innerHTML = (d.fleet || []).map(r => `
+                body.innerHTML = (d.fleet || []).map(r => {
+                    const borrowerHtml = r.borrowerName
+                        ? `<span style="color:#FBBF24;font-weight:700;">👤 ${escapeHtml(r.borrowerName)}</span>${r.borrowerPhone ? `<div style="font-size:10.5px;color:#8F9CA8;">${escapeHtml(r.borrowerPhone)}</div>` : ''}`
+                        : '<span style="color:#00E676;font-size:11.5px;">✅ Ở nhà</span>';
+                    return `
                     <tr>
                         <td><b>${escapeHtml(r.vehicleId)}</b> <span style="color:#8F9CA8;">(${escapeHtml(r.vehicleName)})</span></td>
+                        <td>${borrowerHtml}</td>
                         <td>${r.online ? '<span class="status-badge status-online">● Online</span>' : '<span class="status-badge status-offline">● Offline</span>'}</td>
                         <td>${r.accOn ? '<b style="color:#00E676;">Bật</b>' : '<span style="color:#8F9CA8;">Tắt</span>'}</td>
                         <td><b>${r.currentSpeed} km/h</b></td>
@@ -2414,7 +2741,8 @@
                             <button class="btn-secondary" style="padding:5px 9px;font-size:11.5px;" onclick="switchVehicle('${escapeHtml(r.vehicleId)}'); switchMainTab('video');">📹 Cam</button>
                         </td>
                     </tr>
-                `).join('') || '<tr><td colspan="8" style="text-align:center;color:#8F9CA8;">Chưa có xe nào.</td></tr>';
+                `;
+                }).join('') || '<tr><td colspan="9" style="text-align:center;color:#8F9CA8;">Chưa có xe nào.</td></tr>';
             } catch (_) {}
         }
 
@@ -2426,6 +2754,7 @@
         }
 
         function onVideoVehicleChange(val) {
+            stopOnDemandLive(false);
             document.getElementById('vehicleInput').value = val;
             switchVehicle(val);
             loadVideoWorkspace();
@@ -2444,8 +2773,78 @@
             activeLivePlayers = [];
         }
 
+        function updateLiveSaverUI() {
+            const btn = document.getElementById('btnToggleLiveSaver');
+            const cd = document.getElementById('liveCountdownText');
+            if (!btn || !cd) return;
+            if (liveStreamArmed) {
+                btn.className = 'btn-danger';
+                btn.style.borderColor = '';
+                btn.style.color = '#fff';
+                btn.innerText = '⏹️ Ngắt Live ngay (Tiết kiệm 4G)';
+                cd.innerText = `⏱️ Tự tắt Live sau ${liveCountdownSeconds}s`;
+            } else {
+                btn.className = 'btn-secondary';
+                btn.style.borderColor = '#00E676';
+                btn.style.color = '#00E676';
+                btn.innerText = '▶️ Bật Live (Tự tắt sau 2p)';
+                cd.innerText = '🟢 Live đang tắt (0 KB 4G)';
+            }
+        }
+
+        function toggleOnDemandLive() {
+            if (liveStreamArmed) {
+                stopOnDemandLive(true);
+            } else {
+                liveStreamArmed = true;
+                liveCountdownSeconds = 120;
+                if (liveAutoStopTimer) clearInterval(liveAutoStopTimer);
+                liveAutoStopTimer = setInterval(() => {
+                    liveCountdownSeconds--;
+                    if (liveCountdownSeconds <= 0) {
+                        stopOnDemandLive(true);
+                    } else {
+                        updateLiveSaverUI();
+                    }
+                }, 1000);
+                updateLiveSaverUI();
+                loadVideoWorkspace();
+            }
+        }
+
+        function stopOnDemandLive(reloadWorkspace) {
+            liveStreamArmed = false;
+            liveCountdownSeconds = 0;
+            if (liveAutoStopTimer) {
+                clearInterval(liveAutoStopTimer);
+                liveAutoStopTimer = null;
+            }
+            destroyLivePlayers();
+            updateLiveSaverUI();
+            if (reloadWorkspace && activeMainTab === 'video') {
+                loadVideoWorkspace();
+            }
+        }
+
+        function formatBytes(bytes) {
+            if (!bytes || bytes <= 0) return '--';
+            if (bytes < 1024) return `${bytes} B`;
+            if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+            return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+        }
+
+        function withMediaAuthToken(url) {
+            if (!url) return '';
+            if (url.startsWith('/api/videos/media/') && authToken) {
+                const sep = url.includes('?') ? '&' : '?';
+                return `${url}${sep}token=${encodeURIComponent(authToken)}`;
+            }
+            return url;
+        }
+
         async function loadVideoWorkspace() {
             destroyLivePlayers();
+            updateLiveSaverUI();
             const vId = getVehicleId();
             const date = document.getElementById('videoFilterDate').value;
             const ch = document.getElementById('videoFilterChannel').value;
@@ -2468,8 +2867,36 @@
                     driveBtn.style.display = 'none';
                 }
 
-                // Store current config on window for edit modal
                 window._currentVideoMeta = data;
+
+                // Cập nhật chip người mượn & dung lượng tiết kiệm
+                const borrowerChip = document.getElementById('videoBorrowerChip');
+                if (data.activeLoan) {
+                    borrowerChip.innerText = `👤 Đang mượn: ${data.activeLoan.borrowerName}${data.activeLoan.borrowerPhone ? ' (' + data.activeLoan.borrowerPhone + ')' : ''}`;
+                    borrowerChip.style.color = '#FBBF24';
+                    borrowerChip.style.borderColor = 'rgba(251,191,36,0.45)';
+                } else {
+                    borrowerChip.innerText = '✅ Xe đang ở nhà';
+                    borrowerChip.style.color = '#00E676';
+                    borrowerChip.style.borderColor = 'rgba(0,230,118,0.35)';
+                }
+
+                const st = data.storageStats || {};
+                const storageChip = document.getElementById('videoStorageChip');
+                storageChip.innerText = `💾 Lưu trữ: ${st.localClips ?? 0}/${st.maxLocalClips ?? 30} clip cục bộ (${st.totalSizeMb ?? 0} MB • Tự xóa cũ)`;
+
+                // Thanh trạng thái lệnh đẩy clip gần nhất
+                const cmdBar = document.getElementById('videoCommandBar');
+                const cmds = data.recentCommands || [];
+                if (cmds.length === 0) {
+                    cmdBar.innerHTML = '💡 <b>Tiết kiệm 4G:</b> Cam không đẩy 24/7. Tự động xếp lệnh đẩy clip 15s khi người mượn nổ máy (ACC) / quá tốc độ / rời vùng khóa, hoặc khi bạn bấm nút yêu cầu ở trên.';
+                } else {
+                    cmdBar.innerHTML = '<b style="color:#DCE7F2;">Lệnh camera gần nhất:</b> ' + cmds.slice(0, 4).map(c => {
+                        const badgeColor = c.status === 'COMPLETED' ? '#00E676' : (c.status === 'PENDING' ? '#FBBF24' : '#8F9CA8');
+                        const statusTxt = c.status === 'COMPLETED' ? 'Đã đẩy xong' : (c.status === 'PENDING' ? 'Đang chờ cam' : 'Hết hạn');
+                        return `<span style="background:#101720;border:1px solid #243344;padding:3px 8px;border-radius:999px;color:${badgeColor};">${escapeHtml(c.commandType)} Kênh ${c.channel} (${escapeHtml(c.triggerReason)}) • ${statusTxt}</span>`;
+                    }).join(' ');
+                }
 
                 const grid = document.getElementById('videoGrid');
                 grid.className = `video-grid layout-${videoGridCount}`;
@@ -2482,19 +2909,26 @@
                     const chObj = liveList.find(c => c.channel === idx) || { channel: idx, label: `Kênh ${idx}`, liveUrl: '' };
                     const latestClipForCh = clips.find(c => c.channel === idx);
                     const slotVidId = `liveVidCh${idx}`;
+                    const shouldPlayLive = liveStreamArmed && chObj.liveUrl;
                     slotsHtml += `
                         <div class="cam-slot">
                             <div class="cam-slot-head">
                                 <span>📹 ${escapeHtml(chObj.label)}</span>
-                                <span style="font-size:11px;color:${chObj.liveUrl ? '#00E676' : '#8F9CA8'};">${chObj.liveUrl ? '● LIVE' : 'Chưa cấu hình Live'}</span>
+                                <span style="font-size:11px;color:${shouldPlayLive ? '#00E676' : '#8F9CA8'};">${shouldPlayLive ? '● LIVE (Đang mở)' : (chObj.liveUrl ? '⚡ Chờ bấm Live (0 KB)' : 'Chế độ đẩy clip sự kiện')}</span>
                             </div>
                             <div class="cam-slot-body">
-                                ${chObj.liveUrl
+                                ${shouldPlayLive
                                     ? `<video id="${slotVidId}" controls autoplay muted playsinline></video>`
-                                    : `<div style="font-size:12.5px;color:#9FB0C2;">Chưa gắn luồng phát trực tiếp (HLS/FLV) cho <b>${escapeHtml(chObj.label)}</b>.</div>
+                                    : `<div style="font-size:12.5px;color:#9FB0C2;">
+                                           ${chObj.liveUrl
+                                               ? `Live đang tạm tắt để <b>tiết kiệm 4G SIM</b> cho <b>${escapeHtml(chObj.label)}</b>.`
+                                               : `Đang ở chế độ <b>tiết kiệm 4G</b> — chỉ đẩy clip ngắn 15s / ảnh chụp khi có sự kiện hoặc khi bạn yêu cầu.`}
+                                       </div>
                                        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;">
-                                           <button class="btn-secondary" style="font-size:11.5px;padding:6px 10px;" onclick="openCameraConfigModal()">⚙️ Gắn URL Stream</button>
-                                           ${latestClipForCh ? `<button class="btn-success" style="font-size:11.5px;padding:6px 10px;" onclick="openClipPlayer(${latestClipForCh.id})">▶️ Xem clip Drive gần nhất</button>` : ''}
+                                           ${chObj.liveUrl ? `<button class="btn-success" style="font-size:11.5px;padding:6px 10px;" onclick="toggleOnDemandLive()">▶️ Mở Live 2 phút</button>` : ''}
+                                           <button style="font-size:11.5px;padding:6px 10px;" onclick="sendCaptureRequest(${idx}, 'CLIP', 15)">🎬 Đẩy clip 15s</button>
+                                           <button class="btn-secondary" style="font-size:11.5px;padding:6px 10px;" onclick="sendCaptureRequest(${idx}, 'SNAPSHOT', 1)">📸 Chụp ảnh</button>
+                                           ${latestClipForCh ? `<button class="btn-success" style="font-size:11.5px;padding:6px 10px;" onclick="openClipPlayer(${latestClipForCh.id})">▶️ Xem mới nhất</button>` : ''}
                                        </div>`
                                 }
                             </div>
@@ -2503,31 +2937,188 @@
                 }
                 grid.innerHTML = slotsHtml;
 
-                // Attach HLS / FLV / MP4 streams cleanly
-                for (let idx = 1; idx <= slotsToRender; idx++) {
-                    const chObj = liveList.find(c => c.channel === idx);
-                    if (chObj && chObj.liveUrl) {
-                        attachStreamToVideo(`liveVidCh${idx}`, chObj.liveUrl);
+                if (liveStreamArmed) {
+                    for (let idx = 1; idx <= slotsToRender; idx++) {
+                        const chObj = liveList.find(c => c.channel === idx);
+                        if (chObj && chObj.liveUrl) {
+                            attachStreamToVideo(`liveVidCh${idx}`, chObj.liveUrl);
+                        }
                     }
                 }
 
                 window._latestLoadedClips = clips;
                 const tbody = document.getElementById('videoClipsBody');
-                tbody.innerHTML = clips.map(c => `
+                tbody.innerHTML = clips.map(c => {
+                    const borrowerTxt = c.borrowerName
+                        ? `<b style="color:#FBBF24;">👤 ${escapeHtml(c.borrowerName)}</b>`
+                        : '<span style="color:#8F9CA8;">Chủ xe / Ở nhà</span>';
+                    const sizeAndDur = c.mediaType === 'SNAPSHOT'
+                        ? `📸 Ảnh • ${formatBytes(c.fileSizeBytes)}`
+                        : `${c.durationSeconds || 15}s • ${c.fileSizeBytes ? formatBytes(c.fileSizeBytes) : escapeHtml(c.storageType)}`;
+                    return `
                     <tr>
-                        <td>${escapeHtml(c.recordedAt)}</td>
+                        <td style="font-size:12px;">${escapeHtml(c.recordedAt)}</td>
+                        <td>${borrowerTxt}</td>
                         <td><b style="color:#38BDF8;">${escapeHtml(c.channelLabel || ('Kênh ' + c.channel))}</b></td>
                         <td>${escapeHtml(c.title)}</td>
                         <td><span class="plan-pill" style="background:#1B2735;color:#DCE7F2;border-color:#324457;">${escapeHtml(c.triggerType)}</span></td>
-                        <td>${c.durationSeconds || 60}s</td>
-                        <td>${escapeHtml(c.storageType)}</td>
+                        <td style="font-size:12px;color:#9FB0C2;">${sizeAndDur}</td>
                         <td>
-                            <button class="btn-success" style="padding:5px 9px;font-size:11.5px;" onclick="openClipPlayer(${c.id})">▶️ Phát</button>
+                            <button class="btn-success" style="padding:5px 9px;font-size:11.5px;" onclick="openClipPlayer(${c.id})">${c.mediaType === 'SNAPSHOT' ? '🖼️ Xem' : '▶️ Phát'}</button>
                             <button class="btn-danger" style="padding:5px 9px;font-size:11.5px;" onclick="deleteVideoClip(${c.id})">Xóa</button>
                         </td>
                     </tr>
-                `).join('') || '<tr><td colspan="7" style="text-align:center;color:#8F9CA8;">Chưa có video nào khớp bộ lọc. Bấm "➕ Gắn Clip Google Drive" để thử ngay!</td></tr>';
+                `;
+                }).join('') || '<tr><td colspan="7" style="text-align:center;color:#8F9CA8;">Chưa có video/ảnh nào. Bấm "📤 Đẩy clip / Test Webcam" để quay thử ngay!</td></tr>';
             } catch (_) {}
+        }
+
+        async function sendCaptureRequest(channel, commandType, durationSeconds) {
+            const vId = getVehicleId();
+            try {
+                const res = await apiFetch(`/api/videos/${encodeURIComponent(vId)}/request-capture`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channel, commandType, durationSeconds, quality: 'LOW_360P' })
+                });
+                const d = await res.json();
+                if (!res.ok) return alert(d.message || 'Không gửi được lệnh camera.');
+                alert(d.message || 'Đã xếp lệnh đẩy clip!');
+                if (activeMainTab === 'video') loadVideoWorkspace();
+            } catch (_) {}
+        }
+
+        function openUploadClipModal() {
+            document.getElementById('upClipTitle').value = '';
+            document.getElementById('upClipFile').value = '';
+            document.getElementById('uploadClipMsg').style.display = 'none';
+            document.getElementById('uploadClipModal').style.display = 'flex';
+        }
+
+        function stopWebcamStream() {
+            if (webcamStream) {
+                webcamStream.getTracks().forEach(t => t.stop());
+                webcamStream = null;
+            }
+            const pv = document.getElementById('webcamPreview');
+            if (pv) { pv.srcObject = null; pv.style.display = 'none'; }
+        }
+
+        function closeUploadClipModal() {
+            stopWebcamStream();
+            closeModal('uploadClipModal');
+        }
+
+        async function uploadMediaBlob(blob, fileName, durationSec) {
+            const vId = getVehicleId();
+            const fd = new FormData();
+            fd.append('file', blob, fileName);
+            fd.append('channel', document.getElementById('upClipChannel').value);
+            fd.append('triggerType', document.getElementById('upClipTrigger').value);
+            fd.append('durationSeconds', String(durationSec || 5));
+            const title = document.getElementById('upClipTitle').value.trim();
+            if (title) fd.append('title', title);
+
+            showModalMsg('uploadClipMsg', `⏳ Đang đẩy lên server (${formatBytes(blob.size)})...`, true);
+            const res = await apiFetch(`/api/videos/${encodeURIComponent(vId)}/upload`, {
+                method: 'POST',
+                body: fd
+            });
+            const d = await res.json();
+            if (!res.ok) {
+                showModalMsg('uploadClipMsg', d.message || 'Lỗi đẩy file lên!', false);
+                return;
+            }
+            const prunedInfo = d.prunedOldClips > 0 ? ` (Đã tự xóa ${d.prunedOldClips} clip cũ)` : '';
+            showModalMsg('uploadClipMsg', `✅ ${d.message || 'Đẩy thành công!'} (${formatBytes(blob.size)})${prunedInfo}`, true);
+            setTimeout(() => {
+                closeUploadClipModal();
+                loadVideoWorkspace();
+            }, 650);
+        }
+
+        async function submitLocalFileUpload() {
+            const fileInput = document.getElementById('upClipFile');
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) return showModalMsg('uploadClipMsg', 'Vui lòng chọn 1 file video (.mp4/.webm) hoặc ảnh (.jpg/.png)!', false);
+            if (file.size > 15 * 1024 * 1024) return showModalMsg('uploadClipMsg', 'File vượt quá 15MB (giới hạn tiết kiệm 4G SIM)!', false);
+            try {
+                await uploadMediaBlob(file, file.name, 15);
+            } catch (e) {
+                if (e.message !== 'UNAUTHORIZED') showModalMsg('uploadClipMsg', 'Lỗi tải lên: ' + e.message, false);
+            }
+        }
+
+        async function ensureWebcamPreview() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('Trình duyệt không hỗ trợ truy cập Webcam (cần localhost hoặc HTTPS).');
+            }
+            if (!webcamStream) {
+                webcamStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 15 } },
+                    audio: false
+                });
+            }
+            const pv = document.getElementById('webcamPreview');
+            pv.srcObject = webcamStream;
+            pv.style.display = 'block';
+            await pv.play().catch(() => {});
+            return pv;
+        }
+
+        async function snapshotAndUploadWebcam() {
+            try {
+                const pv = await ensureWebcamPreview();
+                await new Promise(r => setTimeout(r, 350));
+                const canvas = document.createElement('canvas');
+                canvas.width = pv.videoWidth || 640;
+                canvas.height = pv.videoHeight || 360;
+                canvas.getContext('2d').drawImage(pv, 0, 0, canvas.width, canvas.height);
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.72));
+                stopWebcamStream();
+                await uploadMediaBlob(blob, `cabin_snap_${Date.now()}.jpg`, 1);
+            } catch (e) {
+                stopWebcamStream();
+                showModalMsg('uploadClipMsg', 'Không chụp được từ Webcam: ' + e.message, false);
+            }
+        }
+
+        async function recordAndUploadWebcam(seconds = 5) {
+            const btn = document.getElementById('btnRecWebcam5s');
+            try {
+                await ensureWebcamPreview();
+                if (typeof MediaRecorder === 'undefined') {
+                    throw new Error('Trình duyệt không hỗ trợ MediaRecorder.');
+                }
+                const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : 'video/webm';
+                const recorder = new MediaRecorder(webcamStream, { mimeType, videoBitsPerSecond: 350000 });
+                const chunks = [];
+                recorder.ondataavailable = (ev) => { if (ev.data && ev.data.size > 0) chunks.push(ev.data); };
+                btn.disabled = true;
+                let left = seconds;
+                btn.innerText = `🔴 Đang quay (${left}s)...`;
+                const iv = setInterval(() => {
+                    left--;
+                    if (left > 0) btn.innerText = `🔴 Đang quay (${left}s)...`;
+                }, 1000);
+
+                const blob = await new Promise((resolve, reject) => {
+                    recorder.onstop = () => resolve(new Blob(chunks, { type: 'video/webm' }));
+                    recorder.onerror = (err) => reject(err);
+                    recorder.start();
+                    setTimeout(() => { if (recorder.state === 'recording') recorder.stop(); }, seconds * 1000);
+                });
+                clearInterval(iv);
+                btn.disabled = false;
+                btn.innerText = '🎥 Quay 5s & Đẩy lên';
+                stopWebcamStream();
+                await uploadMediaBlob(blob, `cabin_${seconds}s_${Date.now()}.webm`, seconds);
+            } catch (e) {
+                btn.disabled = false;
+                btn.innerText = '🎥 Quay 5s & Đẩy lên';
+                stopWebcamStream();
+                showModalMsg('uploadClipMsg', 'Không quay được Webcam: ' + e.message, false);
+            }
         }
 
         function attachStreamToVideo(videoElId, url) {
@@ -2609,7 +3200,7 @@
                 });
                 const d = await res.json();
                 if (!res.ok) return showModalMsg('addClipMsg', d.message || 'Lỗi lưu clip!', false);
-                showModalMsg('addClipMsg', 'Đã gắn video vào kho Google Drive của xe!', true);
+                showModalMsg('addClipMsg', 'Đã gắn video vào kho của xe!', true);
                 setTimeout(() => { closeModal('addClipModal'); loadVideoWorkspace(); }, 500);
             } catch (_) {}
         }
@@ -2617,18 +3208,25 @@
         function openClipPlayer(clipId) {
             const clip = (window._latestLoadedClips || []).find(c => c.id === clipId);
             if (!clip) return;
-            document.getElementById('playerModalTitle').innerText = `▶️ ${clip.title || ('Kênh ' + clip.channel)}`;
-            document.getElementById('playerMetaText').innerText = `${clip.channelLabel || ''} • ${clip.recordedAt} • Sự kiện: ${clip.triggerType}`;
+            document.getElementById('playerModalTitle').innerText = `${clip.mediaType === 'SNAPSHOT' ? '🖼️' : '▶️'} ${clip.title || ('Kênh ' + clip.channel)}`;
+            const borrowerSuffix = clip.borrowerName ? ` • 👤 ${clip.borrowerName}` : '';
+            const sizeSuffix = clip.fileSizeBytes ? ` • ${formatBytes(clip.fileSizeBytes)}` : '';
+            document.getElementById('playerMetaText').innerText = `${clip.channelLabel || ''} • ${clip.recordedAt} • ${clip.triggerType}${borrowerSuffix}${sizeSuffix}`;
+
+            const rawPreview = clip.embedPreviewUrl || clip.streamUrl || clip.driveWebUrl;
+            const authPreview = withMediaAuthToken(rawPreview);
             const direct = document.getElementById('playerDirectLink');
-            direct.href = clip.driveWebUrl || clip.streamUrl || '#';
+            direct.href = clip.driveWebUrl || authPreview || '#';
+            direct.innerText = clip.driveFileId ? '↗️ Mở trong Google Drive' : '⬇️ Tải / Mở file gốc';
 
             const stage = document.getElementById('playerStage');
-            const previewUrl = clip.embedPreviewUrl || clip.streamUrl || clip.driveWebUrl;
-            if (clip.driveFileId || (previewUrl && previewUrl.includes('drive.google.com'))) {
-                const embedSrc = clip.driveFileId ? `https://drive.google.com/file/d/${encodeURIComponent(clip.driveFileId)}/preview` : previewUrl;
+            if (clip.driveFileId || (rawPreview && rawPreview.includes('drive.google.com'))) {
+                const embedSrc = clip.driveFileId ? `https://drive.google.com/file/d/${encodeURIComponent(clip.driveFileId)}/preview` : rawPreview;
                 stage.innerHTML = `<iframe src="${escapeHtml(embedSrc)}" allow="autoplay; fullscreen" style="position:absolute;inset:0;width:100%;height:100%;border:none;"></iframe>`;
+            } else if (clip.mediaType === 'SNAPSHOT') {
+                stage.innerHTML = `<img src="${escapeHtml(authPreview)}" alt="snapshot" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;" />`;
             } else {
-                stage.innerHTML = `<video src="${escapeHtml(previewUrl)}" controls autoplay playsinline style="position:absolute;inset:0;width:100%;height:100%;background:#000;"></video>`;
+                stage.innerHTML = `<video src="${escapeHtml(authPreview)}" controls autoplay playsinline style="position:absolute;inset:0;width:100%;height:100%;background:#000;"></video>`;
             }
             document.getElementById('playerModal').style.display = 'flex';
         }
@@ -2639,7 +3237,7 @@
         }
 
         async function deleteVideoClip(clipId) {
-            if (!confirm('Xóa liên kết video này khỏi hệ thống?')) return;
+            if (!confirm('Xóa video/ảnh này khỏi hệ thống?')) return;
             const vId = getVehicleId();
             const res = await apiFetch(`/api/videos/${encodeURIComponent(vId)}/${clipId}`, { method: 'DELETE' });
             if (res.ok) loadVideoWorkspace();
@@ -2667,6 +3265,7 @@
                     <tr>
                         <td><b>${escapeHtml(r.vehicleId)}</b></td>
                         <td>${escapeHtml(r.vehicleName)}</td>
+                        <td>${r.borrowerName ? `<b style="color:#FBBF24;">👤 ${escapeHtml(r.borrowerName)}</b>` : '<span style="color:#8F9CA8;">Ở nhà</span>'}</td>
                         <td>${r.online ? '<span class="status-badge status-online">Online</span>' : '<span class="status-badge status-offline">Offline</span>'}</td>
                         <td>${r.accOn ? 'Bật' : 'Tắt'}</td>
                         <td>${r.currentSpeed} km/h</td>
@@ -2676,7 +3275,7 @@
                         <td>${r.videoCount}</td>
                         <td style="font-size:11.5px;color:#8F9CA8;">${escapeHtml(r.lastUpdated || '--')}</td>
                     </tr>
-                `).join('') || '<tr><td colspan="10" style="text-align:center;color:#8F9CA8;">Không có dữ liệu báo cáo.</td></tr>';
+                `).join('') || '<tr><td colspan="11" style="text-align:center;color:#8F9CA8;">Không có dữ liệu báo cáo.</td></tr>';
             } catch (_) {}
         }
 
