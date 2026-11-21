@@ -7,6 +7,7 @@ import java.util.List;
 public interface VideoClipRepository extends JpaRepository<VideoClip, Long> {
     List<VideoClip> findByVehicleIdOrderByRecordedAtDescIdDesc(String vehicleId);
     List<VideoClip> findByVehicleIdAndRecordedAtStartingWithOrderByRecordedAtDescIdDesc(String vehicleId, String datePrefix);
+    List<VideoClip> findByVehicleIdAndStorageTypeOrderByIdAsc(String vehicleId, String storageType);
     long countByVehicleId(String vehicleId);
     long countByVehicleIdAndRecordedAtStartingWith(String vehicleId, String datePrefix);
     void deleteByVehicleId(String vehicleId);

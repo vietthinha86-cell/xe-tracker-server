@@ -20,6 +20,9 @@ public class TelemetryService {
     private final LocationHistoryRepository historyRepository;
     private final TelegramNotificationService telegramService;
 
+    @Autowired(required = false)
+    private CaptureCommandService captureCommandService;
+
     public TelemetryService(
             VehicleRepository vehicleRepository,
             LocationHistoryRepository historyRepository,
@@ -28,6 +31,10 @@ public class TelemetryService {
         this.vehicleRepository = vehicleRepository;
         this.historyRepository = historyRepository;
         this.telegramService = telegramService;
+    }
+
+    public void setCaptureCommandService(CaptureCommandService captureCommandService) {
+        this.captureCommandService = captureCommandService;
     }
 
     public boolean recordTelemetry(
@@ -45,6 +52,7 @@ public class TelemetryService {
 
         boolean wasBreachedBefore = Boolean.TRUE.equals(vehicle.getGuardEnabled())
                 && Boolean.TRUE.equals(vehicle.getGuardBreached());
+        boolean wasAccOnBefore = Boolean.TRUE.equals(vehicle.getAccOn());
 
         double cleanSpeed = Math.max(0.0, speed);
         vehicle.setLatitude(latitude);
@@ -65,6 +73,23 @@ public class TelemetryService {
         boolean savedHistory = saveHistoryPointIfMoved(vehicle.getVehicleId(), latitude, longitude, cleanSpeed, ts);
         if (telegramService != null) {
             telegramService.processTelemetryAlerts(vehicle, wasBreachedBefore);
+        }
+
+        if (captureCommandService != null) {
+            boolean isAccOnNow = Boolean.TRUE.equals(vehicle.getAccOn());
+            if (!wasAccOnBefore && isAccOnNow) {
+                captureCommandService.enqueueAutoCaptureIfAllowed(vehicle, "ACC_ON", 2, CaptureCommand.TYPE_CLIP, 15);
+            }
+            boolean isBreachedNow = Boolean.TRUE.equals(vehicle.getGuardEnabled())
+                    && Boolean.TRUE.equals(vehicle.getGuardBreached());
+            if (!wasBreachedBefore && isBreachedNow) {
+                captureCommandService.enqueueAutoCaptureIfAllowed(vehicle, "GEOFENCE_BREACH", 2, CaptureCommand.TYPE_CLIP, 15);
+            }
+            int speedLimit = vehicle.getMaxSpeedAlertKmh() != null && vehicle.getMaxSpeedAlertKmh() > 0
+                    ? vehicle.getMaxSpeedAlertKmh() : 90;
+            if (cleanSpeed > speedLimit) {
+                captureCommandService.enqueueAutoCaptureIfAllowed(vehicle, "OVERSPEED", 1, CaptureCommand.TYPE_CLIP, 15);
+            }
         }
         return savedHistory;
     }

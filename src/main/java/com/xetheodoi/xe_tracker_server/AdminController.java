@@ -31,6 +31,8 @@ public class AdminController {
     private VideoClipRepository videoClipRepository;
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private VehicleLoanRepository vehicleLoanRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private CaptureCommandRepository captureCommandRepository;
     private final SecureRandom random = new SecureRandom();
 
     public AdminController(
@@ -355,6 +357,9 @@ public class AdminController {
         }
         if (vehicleLoanRepository != null) {
             vehicleLoanRepository.deleteByVehicleId(v.getVehicleId());
+        }
+        if (captureCommandRepository != null) {
+            captureCommandRepository.deleteByVehicleId(v.getVehicleId());
         }
         vehicleRepository.delete(v);
         return ResponseEntity.ok(Map.of("status", "ok", "message", "Đã xóa xe " + v.getVehicleId()));
