@@ -28,6 +28,9 @@ public class TelegramNotificationService {
     private final VehicleRepository vehicleRepository;
     private final HttpClient httpClient;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private VehicleLoanRepository loanRepository;
+
     public TelegramNotificationService(
             AppSettingRepository settingRepository,
             AppUserRepository userRepository,
@@ -69,6 +72,19 @@ public class TelegramNotificationService {
                 ? vehicle.getVehicleId() + " (" + vehicle.getVehicleName() + ")"
                 : vehicle.getVehicleId();
 
+        String borrowerLine = "";
+        if (loanRepository != null) {
+            Optional<VehicleLoan> activeLoan = loanRepository.findFirstByVehicleIdAndStatusOrderByIdDesc(
+                    vehicle.getVehicleId(), VehicleLoan.STATUS_ACTIVE);
+            if (activeLoan.isPresent()) {
+                VehicleLoan loan = activeLoan.get();
+                String phoneSuffix = (loan.getBorrowerPhone() != null && !loan.getBorrowerPhone().isBlank())
+                        ? " (" + loan.getBorrowerPhone().trim() + ")"
+                        : "";
+                borrowerLine = "👤 Người đang mượn: " + loan.getBorrowerName() + phoneSuffix + "\n";
+            }
+        }
+
         // 1. Cảnh báo vượt rào Khóa Bãi Đỗ Chống Trộm (ngay lúc vừa vượt hoặc lặp lại mỗi 60s)
         if (Boolean.TRUE.equals(vehicle.getGuardEnabled()) && Boolean.TRUE.equals(vehicle.getGuardBreached())) {
             long lastSent = vehicle.getLastTelegramAlertEpochMs() != null ? vehicle.getLastTelegramAlertEpochMs() : 0L;
@@ -80,10 +96,11 @@ public class TelegramNotificationService {
                 double speed = vehicle.getSpeed() != null ? vehicle.getSpeed() : 0.0;
                 String msg = String.format(
                         "🚨 CẢNH BÁO CHỐNG TRỘM XE %s!\n"
+                                + "%s"
                                 + "Xe đã rời khỏi vùng khóa an toàn: cách tâm %dm (giới hạn %dm).\n"
                                 + "Vận tốc hiện tại: %.1f km/h\n"
                                 + "📍 Xem vị trí trên Google Maps:\nhttps://maps.google.com/?q=%.6f,%.6f",
-                        label, dist, radius, speed, vehicle.getLatitude(), vehicle.getLongitude()
+                        label, borrowerLine, dist, radius, speed, vehicle.getLatitude(), vehicle.getLongitude()
                 );
                 sendAsync(token, chatId.trim(), msg);
             }
@@ -99,9 +116,10 @@ public class TelegramNotificationService {
                 vehicleRepository.save(vehicle);
                 String msg = String.format(
                         "⚠️ CẢNH BÁO TỐC ĐỘ XE %s!\n"
+                                + "%s"
                                 + "Xe đang chạy %.1f km/h (vượt ngưỡng %d km/h).\n"
                                 + "📍 https://maps.google.com/?q=%.6f,%.6f",
-                        label, vehicle.getSpeed(), speedLimit, vehicle.getLatitude(), vehicle.getLongitude()
+                        label, borrowerLine, vehicle.getSpeed(), speedLimit, vehicle.getLatitude(), vehicle.getLongitude()
                 );
                 sendAsync(token, chatId.trim(), msg);
             }

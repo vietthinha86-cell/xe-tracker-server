@@ -21,10 +21,15 @@ public class VideoClip {
     private Integer channel = 1;
     private String channelLabel;
     private String title;
-    private String triggerType = "MANUAL"; // MANUAL, TRIP, GEOFENCE, OVERSPEED, ACCIDENT
+    private String triggerType = "MANUAL"; // MANUAL, OWNER_REQUEST, ACC_ON, TRIP, GEOFENCE, OVERSPEED, ACCIDENT
     private String recordedAt;             // yyyy-MM-dd HH:mm:ss
-    private Integer durationSeconds = 60;
-    private String storageType = "GOOGLE_DRIVE"; // GOOGLE_DRIVE, DIRECT_URL
+    private Integer durationSeconds = 15;
+    private String storageType = "GOOGLE_DRIVE"; // GOOGLE_DRIVE, DIRECT_URL, LOCAL_MEDIA
+    private String mediaType = "VIDEO";          // VIDEO, SNAPSHOT
+    private Long fileSizeBytes;
+    private String localFileName;
+    private Long loanId;
+    private String borrowerName;
     private String driveFileId;
     private String driveWebUrl;
     private String streamUrl;
@@ -60,6 +65,21 @@ public class VideoClip {
 
     public String getStorageType() { return storageType; }
     public void setStorageType(String storageType) { this.storageType = storageType; }
+
+    public String getMediaType() { return mediaType; }
+    public void setMediaType(String mediaType) { this.mediaType = mediaType; }
+
+    public Long getFileSizeBytes() { return fileSizeBytes; }
+    public void setFileSizeBytes(Long fileSizeBytes) { this.fileSizeBytes = fileSizeBytes; }
+
+    public String getLocalFileName() { return localFileName; }
+    public void setLocalFileName(String localFileName) { this.localFileName = localFileName; }
+
+    public Long getLoanId() { return loanId; }
+    public void setLoanId(Long loanId) { this.loanId = loanId; }
+
+    public String getBorrowerName() { return borrowerName; }
+    public void setBorrowerName(String borrowerName) { this.borrowerName = borrowerName; }
 
     public String getDriveFileId() { return driveFileId; }
     public void setDriveFileId(String driveFileId) { this.driveFileId = driveFileId; }
